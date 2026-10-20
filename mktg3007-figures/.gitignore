@@ -1,0 +1,5 @@
+# The report itself and page screenshots stay local: the repository is public and
+# a public copy of the report text could be matched by Turnitin.
+*.docx
+output/before_after_page*.png
+__pycache__/
