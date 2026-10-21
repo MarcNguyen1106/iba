@@ -18,3 +18,15 @@ Open `index.html` in any browser to play. It needs no install or build, and it w
   arrange a vase, listen to the rain, or take a nap.
 
 Progress is saved in your browser (localStorage).
+
+### Art
+Every drawing is hand-made inline SVG, drawn by studying reference images (no images are bundled):
+- **Tulips**: real *Tulipa gesneriana* photos. The cup has a broad front petal, side petals with soft
+  points and a back petal peeking up. White tulips are tinted green at the base, and the leaves are broad
+  and blue-green. Growth goes bulb → sprout → leaves → bud → opening → bloom.
+- **Kurimanju-senpai**: anime stills and the official nendoroid. That gives the bun-shaped head, the brown
+  chestnut cap with a curved edge, ear bumps, hatched blush, the "ω" mouth and the "ハーッ!!!" face.
+- **Hello Kitty plush**: Sanrio character art. That gives the wide head, the bow on her left ear, oval eyes,
+  the yellow nose, whiskers and no mouth.
+- **Drinks**: photos of iced matcha lattes (the matcha floats on the denser milk) and Vietnamese trà xoài
+  with see-through agar pearls and thick kem cheese.

@@ -51,11 +51,11 @@ h1,h2,h3{font-family:var(--font-head);margin:0;line-height:1.1}
   box-shadow:0 3px 0 var(--pink-300);transition:transform .12s, box-shadow .12s, background .2s;
   user-select:none;-webkit-user-select:none;touch-action:manipulation;
 }
-.btn:hover{transform:translateY(-1px);background:var(--pink-50)}
+.btn:hover{background:var(--pink-50);box-shadow:0 4px 0 var(--pink-300)}
 .btn:active{transform:translateY(2px);box-shadow:0 1px 0 var(--pink-300)}
 .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .btn.primary{background:var(--pink-400);border-color:var(--pink-500);color:#fff;box-shadow:0 3px 0 var(--pink-600)}
-.btn.primary:hover{background:var(--pink-500)}
+.btn.primary:hover{background:var(--pink-500);box-shadow:0 4px 0 var(--pink-600)}
 .btn.red{background:var(--bow);border-color:var(--bow-dark);color:#fff;box-shadow:0 3px 0 var(--bow-dark)}
 .btn.ghost{background:transparent;box-shadow:none;border-style:dashed}
 .btn.big{padding:12px 20px;font-size:16px}
@@ -155,8 +155,8 @@ h1,h2,h3{font-family:var(--font-head);margin:0;line-height:1.1}
 .fx-spark{font-size:18px;animation:spark 1s ease-out forwards}
 @keyframes spark{0%{transform:scale(0) rotate(0);opacity:1}60%{opacity:1}100%{transform:scale(1.4) rotate(90deg) translateY(-20px);opacity:0}}
 .flyer{position:fixed;z-index:200;pointer-events:none;transition:transform .8s cubic-bezier(.5,-.3,.6,1), opacity .8s;width:34px;height:34px}
-.steam-puff{position:absolute;border-radius:50%;background:rgba(255,255,255,.85);animation:puff 1.6s ease-out forwards;pointer-events:none}
-@keyframes puff{0%{transform:scale(.2);opacity:.9}100%{transform:scale(2.4) translateY(-30px);opacity:0}}
+.steam-puff{position:absolute;border-radius:50%;background:rgba(255,255,255,.7);animation:puff 1.6s ease-out forwards;pointer-events:none}
+@keyframes puff{0%{transform:translate(0,0) scale(.3);opacity:.75}100%{transform:translate(34px,-40px) scale(2);opacity:0}}
 
 /* ---------- tray & orders ---------- */
 .tray{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px}
@@ -215,7 +215,7 @@ h1,h2,h3{font-family:var(--font-head);margin:0;line-height:1.1}
   position:relative;border:none;background:rgba(255,255,255,.35);border-radius:18px;padding:4px 4px 8px;
   display:flex;flex-direction:column;align-items:center;transition:transform .15s, background .2s;
 }
-.plot:hover{background:rgba(255,255,255,.6);transform:translateY(-2px)}
+.plot:hover{background:rgba(255,255,255,.62);box-shadow:0 4px 10px rgba(93,138,58,.18)}
 .plot svg{width:100%;max-width:130px;height:auto;overflow:visible}
 .plot .label{font-size:12px;font-weight:800;color:#4d6b33;min-height:16px}
 .plot .prog{width:70%;height:6px;border-radius:9px;background:rgba(255,255,255,.7);overflow:hidden;margin-top:3px}
@@ -234,7 +234,7 @@ h1,h2,h3{font-family:var(--font-head);margin:0;line-height:1.1}
   border:3px solid var(--pink-200);background:#fff;border-radius:22px;padding:12px;text-align:left;
   display:grid;grid-template-columns:70px 1fr;gap:10px;align-items:center;transition:transform .15s;
 }
-.recipe:hover{transform:translateY(-3px);border-color:var(--pink-400)}
+.recipe:hover{border-color:var(--pink-400);box-shadow:0 6px 14px rgba(217,70,122,.15)}
 .recipe svg{width:70px;height:94px}
 .recipe h3{font-size:17px;color:var(--pink-600)}
 .recipe ol{margin:4px 0 0;padding-left:18px;font-size:12px;font-weight:700;color:var(--ink-soft)}
@@ -787,12 +787,34 @@ const Sound = (() => {
 })();
 
 /* =================================================================
-   Art kit: hand-written SVG pieces reused all over the shop
+   Art kit: SVG pieces redrawn from reference photos & official art
+   - tulips: Tulipa gesneriana photos (Wikimedia Commons, WordPress CC0)
+   - Kurimanju: anime stills + Good Smile nendoroid photos
+   - Kitty: Sanrio character art
 ================================================================= */
 const TC = {
-  pink:  { back: '#ff6f9f', front: '#ff9cc0', edge: '#e2508a', name: 'pink' },
-  white: { back: '#f1e6ee', front: '#ffffff', edge: '#dcbccd', name: 'white' }
+  pink:  { name: 'pink',  front: 'url(#tpPinkFront)',  side: 'url(#tpPinkSide)',  back: 'url(#tpPinkBack)',  edge: '#c9467c', vein: '#d4568a', bud: 'url(#tpPinkBud)',  flat: '#ff8fb8', flatDark: '#e2558c' },
+  white: { name: 'white', front: 'url(#tpWhiteFront)', side: 'url(#tpWhiteSide)', back: 'url(#tpWhiteBack)', edge: '#c7b8c2', vein: '#b9c9a4', bud: 'url(#tpWhiteBud)', flat: '#ffffff', flatDark: '#e6e0e6' }
 };
+const KURI = { line: '#3b2417', body: '#fde6c4', bodyShade: '#f3d3a8', cap: '#9c6a50', capLight: '#b07d62', blush: '#f9a3b6' };
+
+/* Shared gradients/clip paths, defined once in a hidden <svg> and referenced by every drawing. */
+const GLOBAL_DEFS = `
+<svg width="0" height="0" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true" focusable="false"><defs>
+  <linearGradient id="tpPinkFront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd0e2"/><stop offset=".45" stop-color="#ffa2c5"/><stop offset="1" stop-color="#ee6b9c"/></linearGradient>
+  <linearGradient id="tpPinkSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff9cc0"/><stop offset="1" stop-color="#db5a8f"/></linearGradient>
+  <linearGradient id="tpPinkBack" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8ab4"/><stop offset="1" stop-color="#c94a80"/></linearGradient>
+  <linearGradient id="tpWhiteFront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#fbf8fb"/><stop offset="1" stop-color="#e2ecd0"/></linearGradient>
+  <linearGradient id="tpWhiteSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7f2f6"/><stop offset="1" stop-color="#d6e2c3"/></linearGradient>
+  <linearGradient id="tpWhiteBack" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ece6ec"/><stop offset="1" stop-color="#c9d7b5"/></linearGradient>
+  <linearGradient id="tpPinkBud" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff94bb"/><stop offset=".5" stop-color="#f5b3cb"/><stop offset="1" stop-color="#9fca7f"/></linearGradient>
+  <linearGradient id="tpWhiteBud" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#eef2e2"/><stop offset="1" stop-color="#9fca7f"/></linearGradient>
+  <linearGradient id="tpLeafDark" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5f9070"/><stop offset="1" stop-color="#7aa985"/></linearGradient>
+  <linearGradient id="tpLeafLight" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9cc49c"/><stop offset="1" stop-color="#b9d6b3"/></linearGradient>
+  <linearGradient id="tpStem" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5e9450"/><stop offset=".5" stop-color="#86b86a"/><stop offset="1" stop-color="#5e9450"/></linearGradient>
+  <clipPath id="kuriHeadClip"><path d="M100 16 C147 16 181 42 186 84 C191 123 156 152 100 152 C44 152 9 123 14 84 C19 42 53 16 100 16Z"/></clipPath>
+</defs></svg>`;
+
 const ART = {
   bow(x, y, s = 1, c = '#e8364f') {
     return `<g transform="translate(${x} ${y}) scale(${s})">
@@ -804,85 +826,167 @@ const ART = {
       <ellipse cx="-22" cy="-5" rx="5" ry="3" fill="#fff" opacity=".35"/>
     </g>`;
   },
-  tulipHead(color, s = 1) {
+
+  /* ---- tulips -------------------------------------------------------
+     A real tulip cup: three outer + three inner tepals. From the front you
+     see one broad egg-shaped front petal, two side petals whose soft points
+     curl in at the top, and the tip of a back petal peeking up between them.
+     Origin (0,0) is where the stem meets the flower. */
+  tulipHead(color, s = 1, open = 1) {
+    const t = TC[color];
+    const f = 1 + (1 - open) * 0.28;   // a half-open flower is narrower and taller
+    const front = 'M0 3 C-13.5 2.5 -19 -8 -19 -22 C-19 -34 -13.5 -44 -4 -48.6 C-2 -49.5 -0.8 -50.6 0 -51.6 C0.8 -50.6 2 -49.5 4 -48.6 C13.5 -44 19 -34 19 -22 C19 -8 13.5 2.5 0 3Z';
+    return `<g transform="scale(${s / f} ${s})">
+      <path d="M0 -6 C-8 -12 -12 -28 -10 -42 C-9 -49 -4.5 -55 0 -57.5 C4.5 -55 9 -49 10 -42 C12 -28 8 -12 0 -6Z" fill="${t.back}" stroke="${t.edge}" stroke-width="1.1"/>
+      <path d="M-2 1 C-14 0.5 -23 -8 -24 -22 C-25 -33 -23.6 -42 -21.2 -48 C-20 -51 -18 -53 -16 -52.4 C-13.8 -51.4 -11.8 -47.4 -9.6 -42.4 C-5.6 -32 -2.6 -16 -2 1Z" fill="${t.side}" stroke="${t.edge}" stroke-width="1.1" stroke-linejoin="round"/>
+      <path d="M2 1 C14 0.5 23 -8 24 -22 C25 -33 23.6 -42 21.2 -48 C20 -51 18 -53 16 -52.4 C13.8 -51.4 11.8 -47.4 9.6 -42.4 C5.6 -32 2.6 -16 2 1Z" fill="${t.side}" stroke="${t.edge}" stroke-width="1.1" stroke-linejoin="round"/>
+      <path d="M-19.5 -40 C-18 -30 -16 -18 -10 -6 M19.5 -40 C18 -30 16 -18 10 -6" stroke="${t.vein}" stroke-opacity=".28" stroke-width="1" fill="none"/>
+      <path d="${front}" fill="none" stroke="#000" stroke-opacity=".1" stroke-width="4" transform="translate(0 .6)"/>
+      <path d="${front}" fill="${t.front}" stroke="${t.edge}" stroke-width="1.2" stroke-linejoin="round"/>
+      <path d="M0 0 C-0.8 -14 -0.8 -32 0 -48" stroke="${t.vein}" stroke-opacity=".45" stroke-width="1" fill="none"/>
+      <path d="M-5.5 -3 C-10 -14 -11 -30 -7 -43 M5.5 -3 C10 -14 11 -30 7 -43" stroke="${t.vein}" stroke-opacity=".18" stroke-width="1" fill="none"/>
+      <path d="M-11.5 -38 C-14.5 -30 -14.5 -18 -10.5 -7" stroke="#fff" stroke-opacity=".7" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+      <path d="M8 -41 C10.5 -37 12 -33 12.6 -29" stroke="#fff" stroke-opacity=".35" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M-4.5 2.6 C-2 4.4 2 4.4 4.5 2.6" stroke="#6f9d58" stroke-width="2" fill="none" stroke-linecap="round"/>
+    </g>`;
+  },
+  tulipBud(color, s = 1) {
     const t = TC[color];
     return `<g transform="scale(${s})">
-      <path d="M0 0 Q-20 -2 -18 -24 Q-16 -36 -8 -28 Q-2 -14 0 0Z" fill="${t.back}" stroke="${t.edge}" stroke-width="1.5"/>
-      <path d="M0 0 Q20 -2 18 -24 Q16 -36 8 -28 Q2 -14 0 0Z" fill="${t.back}" stroke="${t.edge}" stroke-width="1.5"/>
-      <path d="M0 3 Q-15 -6 -11 -30 Q0 -44 11 -30 Q15 -6 0 3Z" fill="${t.front}" stroke="${t.edge}" stroke-width="1.5"/>
-      <path d="M-4 -28 Q-7 -16 -3 -5" stroke="#fff" stroke-opacity=".75" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M0 2 C-9 1.5 -12.5 -9 -11.5 -21 C-10.5 -31 -5.5 -40 0 -47 C5.5 -40 10.5 -31 11.5 -21 C12.5 -9 9 1.5 0 2Z" fill="${t.bud}" stroke="${t.edge}" stroke-width="1.1"/>
+      <path d="M-1 0 C-6 -12 -6.5 -29 0 -45" stroke="${t.edge}" stroke-opacity=".55" stroke-width="1" fill="none"/>
+      <path d="M2.5 -1 C6.5 -13 6 -29 1 -43" stroke="${t.edge}" stroke-opacity=".3" stroke-width="1" fill="none"/>
+      <path d="M-7 -30 C-8.5 -22 -8 -13 -5.5 -6" stroke="#fff" stroke-opacity=".55" stroke-width="2.4" fill="none" stroke-linecap="round"/>
     </g>`;
   },
-  tulip(x, y, h, color, s = 1, lean = 0) {
+  // broad, blue-green tulip leaf: a blade with a lighter folded inner face
+  tulipLeaf(L, W, flip = false) {
+    const k = flip ? -1 : 1;
+    return `<g transform="scale(${k} 1)">
+      <path d="M0 0 C${-W} ${-L * 0.12} ${-W * 1.05} ${-L * 0.52} ${-W * 0.28} ${-L * 0.92} Q${-W * 0.05} ${-L * 1.02} ${W * 0.06} ${-L} C${W * 0.12} ${-L * 0.74} ${W * 0.5} ${-L * 0.3} 0 0Z" fill="url(#tpLeafDark)"/>
+      <path d="M0 0 C${-W * 0.22} ${-L * 0.34} ${-W * 0.24} ${-L * 0.7} ${W * 0.06} ${-L} C${W * 0.12} ${-L * 0.74} ${W * 0.5} ${-L * 0.3} 0 0Z" fill="url(#tpLeafLight)"/>
+      <path d="M0 -2 C${-W * 0.1} ${-L * 0.4} ${-W * 0.12} ${-L * 0.72} ${W * 0.04} ${-L * 0.98}" stroke="#5a8a66" stroke-opacity=".5" stroke-width="1" fill="none"/>
+    </g>`;
+  },
+  tulip(x, y, h, color, s = 1, lean = 0, stage = 'bloom', headClass = '') {
     const tx = x + lean, ty = y - h;
+    const ang = Math.atan2(lean, h) * 180 / Math.PI;
+    const head = stage === 'bud' ? ART.tulipBud(color, s) : ART.tulipHead(color, s, stage === 'opening' ? 0.4 : 1);
     return `<g>
-      <path d="M${x} ${y} Q${x + lean * 0.2} ${y - h * 0.5} ${tx} ${ty}" stroke="#5d8a3a" stroke-width="${3.4 * s}" fill="none" stroke-linecap="round"/>
-      <path d="M${x} ${y} Q${x - 17 * s} ${y - h * 0.35} ${x - 10 * s} ${y - h * 0.62} Q${x - 3 * s} ${y - h * 0.3} ${x} ${y}Z" fill="#86b55c"/>
-      <path d="M${x} ${y} Q${x + 15 * s} ${y - h * 0.3} ${x + 10 * s} ${y - h * 0.5} Q${x + 3 * s} ${y - h * 0.25} ${x} ${y}Z" fill="#76a64e"/>
-      <g transform="translate(${tx} ${ty + 2 * s})">${ART.tulipHead(color, s)}</g>
+      <g transform="translate(${x + 1.5 * s} ${y - h * 0.05}) rotate(${15 - ang * 0.3})">${ART.tulipLeaf(Math.min(h * 0.45 + 20 * s, h * 0.85), 12.5 * s, true)}</g>
+      <path d="M${x} ${y} C${x} ${y - h * 0.42} ${x + lean * 0.85} ${y - h * 0.7} ${tx} ${ty}" stroke="url(#tpStem)" stroke-width="${4.2 * s}" fill="none" stroke-linecap="round"/>
+      <path d="M${x - 0.6 * s} ${y - h * 0.1} C${x - 0.6 * s} ${y - h * 0.45} ${x + lean * 0.8 - 0.6 * s} ${y - h * 0.7} ${tx - 0.6 * s} ${ty + 4 * s}" stroke="#c9e6b4" stroke-opacity=".55" stroke-width="${0.9 * s}" fill="none" stroke-linecap="round"/>
+      <g transform="translate(${x - 1.5 * s} ${y}) rotate(${-9 - ang * 0.3})">${ART.tulipLeaf(Math.min(h * 0.55 + 26 * s, h * 0.95), 15 * s)}</g>
+      <g transform="translate(${tx} ${ty + 1.5 * s}) rotate(${ang})"><g class="${headClass}">${head}</g></g>
     </g>`;
   },
-  // A Hello-Kitty-style plush: oval head, red bow on her left ear, yellow nose, whiskers — and no mouth.
+
+  /* ---- Hello Kitty plush (Sanrio proportions) ----------------------
+     Wide oval head, rounded ears, bow with rounded loops on her left ear
+     (viewer's right), low-set oval eyes, yellow nose, three whiskers per
+     side that run past the face — and no mouth. */
   kitty(sleepy = false) {
+    const L = '#262022', red = '#e8364f';
     const eyes = sleepy
-      ? `<g stroke="#3b2a2a" stroke-width="3" stroke-linecap="round" fill="none"><path d="M-23 5 Q-18 9 -13 5"/><path d="M13 5 Q18 9 23 5"/></g>`
-      : `<g class="eyes"><ellipse cx="-18" cy="4" rx="4.5" ry="6" fill="#3b2a2a"/><ellipse cx="18" cy="4" rx="4.5" ry="6" fill="#3b2a2a"/></g>`;
-    return `<g>
-      <path d="M-28 28 Q-37 58 -35 76 L35 76 Q37 58 28 28Z" fill="#ff86ac" stroke="#3b2a2a" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M-32 70 L32 70" stroke="#fff" stroke-width="3" stroke-dasharray="3 5"/>
-      <ellipse cx="-35" cy="46" rx="9" ry="12" fill="#fff" stroke="#3b2a2a" stroke-width="3"/>
-      <ellipse cx="35" cy="46" rx="9" ry="12" fill="#fff" stroke="#3b2a2a" stroke-width="3"/>
-      <ellipse cx="-14" cy="80" rx="12" ry="7" fill="#fff" stroke="#3b2a2a" stroke-width="3"/>
-      <ellipse cx="14" cy="80" rx="12" ry="7" fill="#fff" stroke="#3b2a2a" stroke-width="3"/>
-      <path d="M-45 -4 L-39 -44 L-12 -30Z" fill="#fff" stroke="#3b2a2a" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M45 -4 L39 -44 L12 -30Z" fill="#fff" stroke="#3b2a2a" stroke-width="3" stroke-linejoin="round"/>
-      <ellipse cx="0" cy="0" rx="50" ry="38" fill="#fff" stroke="#3b2a2a" stroke-width="3"/>
+      ? `<g stroke="${L}" stroke-width="3.2" stroke-linecap="round" fill="none"><path d="M-34 8 Q-28 13 -22 8"/><path d="M22 8 Q28 13 34 8"/></g>`
+      : `<g class="eyes"><ellipse cx="-28" cy="7" rx="5.2" ry="7.6" fill="${L}"/><ellipse cx="28" cy="7" rx="5.2" ry="7.6" fill="${L}"/></g>`;
+    return `<g stroke-linejoin="round">
+      <path d="M-30 40 C-38 56 -40 74 -36 88 L36 88 C40 74 38 56 30 40Z" fill="#fff" stroke="${L}" stroke-width="3"/>
+      <g stroke="#ff6f96" stroke-width="3.4"><path d="M-29 47 L29 47"/><path d="M-32 55 L32 55"/></g>
+      <path d="M-29 43 C-42 45 -50 55 -50.5 64 C-51 71.5 -42.5 74.5 -38.5 68.5 C-36 64 -33.5 57 -29 52Z" fill="#fff" stroke="${L}" stroke-width="2.8"/>
+      <path d="M29 43 C42 45 50 55 50.5 64 C51 71.5 42.5 74.5 38.5 68.5 C36 64 33.5 57 29 52Z" fill="#fff" stroke="${L}" stroke-width="2.8"/>
+      <g stroke="#ff6f96" stroke-width="3"><path d="M-37 46 L-42 54"/><path d="M-31.5 49 L-36.5 57.5"/><path d="M37 46 L42 54"/><path d="M31.5 49 L36.5 57.5"/></g>
+      <path d="M-49.5 59.5 C-46 61.5 -41.5 61.5 -38.5 59 M49.5 59.5 C46 61.5 41.5 61.5 38.5 59" stroke="${L}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M-19 58 L19 58 L20 66 L35 66 C38.5 74 38.5 82 36 88 L-36 88 C-38.5 82 -38.5 74 -35 66 L-20 66Z" fill="#ff86ac" stroke="${L}" stroke-width="2.6"/>
+      <path d="M-19 58 L-27 42 M19 58 L27 42" stroke="#ff86ac" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="-14" cy="62" r="3.4" fill="#fff" stroke="${L}" stroke-width="1.6"/><circle cx="14" cy="62" r="3.4" fill="#fff" stroke="${L}" stroke-width="1.6"/>
+      <path d="M0 77 C-3 73.5 -8 75.5 -5 79.5 L0 83.5 L5 79.5 C8 75.5 3 73.5 0 77Z" fill="#fff" opacity=".9"/>
+      <ellipse cx="-15" cy="91" rx="14.5" ry="7.8" fill="#fff" stroke="${L}" stroke-width="3"/>
+      <ellipse cx="15" cy="91" rx="14.5" ry="7.8" fill="#fff" stroke="${L}" stroke-width="3"/>
+      <path d="M-59 -6 C-64 -28 -61 -47 -53 -53.5 C-46 -58 -33 -51 -15 -42Z" fill="#fff" stroke="${L}" stroke-width="3"/>
+      <path d="M59 -6 C64 -28 61 -47 53 -53.5 C46 -58 33 -51 15 -42Z" fill="#fff" stroke="${L}" stroke-width="3"/>
+      <path d="M0 -45 C40 -45 64 -29 64 -2 C64 28 38 44 0 44 C-38 44 -64 28 -64 -2 C-64 -29 -40 -45 0 -45Z" fill="#fff" stroke="${L}" stroke-width="3.2"/>
       ${eyes}
-      <ellipse cx="0" cy="14" rx="6" ry="4.2" fill="#ffd23f" stroke="#3b2a2a" stroke-width="2.2"/>
-      <g stroke="#3b2a2a" stroke-width="2.6" stroke-linecap="round">
-        <path d="M-38 2 L-60 -3"/><path d="M-38 11 L-62 12"/><path d="M-37 20 L-58 27"/>
-        <path d="M38 2 L60 -3"/><path d="M38 11 L62 12"/><path d="M37 20 L58 27"/>
+      <ellipse cx="0" cy="19" rx="6.8" ry="4.8" fill="#ffd23f" stroke="${L}" stroke-width="2.4"/>
+      <g stroke="${L}" stroke-width="3" stroke-linecap="round">
+        <path d="M-47 2 L-82 -5"/><path d="M-49 13 L-86 14"/><path d="M-47 24 L-81 32"/>
+        <path d="M47 2 L82 -5"/><path d="M49 13 L86 14"/><path d="M47 24 L81 32"/>
       </g>
-      ${ART.bow(28, -30, 0.72)}
+      <g transform="translate(38 -40) rotate(-12)" stroke="${L}" stroke-width="3">
+        <path d="M-5 0 C-10 -17 -32 -23 -38 -9 C-42 3 -34 17 -17 14 C-10 12 -7 7 -5 0Z" fill="${red}"/>
+        <path d="M5 0 C10 -17 32 -23 38 -9 C42 3 34 17 17 14 C10 12 7 7 5 0Z" fill="${red}"/>
+        <ellipse cx="-21" cy="-2" rx="7.5" ry="5.5" transform="rotate(-18 -21 -2)" fill="none" stroke-width="2.2"/>
+        <ellipse cx="21" cy="-2" rx="7.5" ry="5.5" transform="rotate(18 21 -2)" fill="none" stroke-width="2.2"/>
+        <ellipse cx="0" cy="1" rx="9.5" ry="10.5" fill="${red}"/>
+      </g>
     </g>`;
   },
-  // Kurimanju-senpai: a round chestnut-bun buddy with a glossy brown cap, tiny ears and a big "Haa~".
+
+  /* ---- Kurimanju-senpai (Chiikawa) ------------------------------------
+     Proportions traced from the nendoroid: a wide bun-shaped head topped
+     with a brown chestnut cap whose edge dips in a soft curve, little cream
+     ear bumps where the cap ends, a smaller body with stubby arms & legs,
+     hatched blush, fur marks between the eyes. viewBox 0 0 200 222. */
   kuri(mood = 'idle', extra = '') {
+    const K = KURI, L = K.line;
     let face;
+    const eyesOpen = `<g class="eyes">
+        <ellipse cx="74" cy="90" rx="7" ry="7.4" fill="#1d120c"/><ellipse cx="126" cy="90" rx="7" ry="7.4" fill="#1d120c"/>
+        <ellipse cx="76.2" cy="87.4" rx="2.6" ry="2.2" fill="#fff"/><ellipse cx="128.2" cy="87.4" rx="2.6" ry="2.2" fill="#fff"/>
+        <circle cx="71.6" cy="93" r="1" fill="#fff" opacity=".8"/><circle cx="123.6" cy="93" r="1" fill="#fff" opacity=".8"/></g>`;
+    const blush = [62, 138].map(cx => `<ellipse cx="${cx}" cy="107" rx="14" ry="9.4" fill="${K.blush}"/>
+        <g stroke="${L}" stroke-width="1.9" stroke-linecap="round">${[-6, -2, 2, 6].map(d => `<path d="M${cx + d + 1.5} 102.5 L${cx + d - 1.5} 111.5"/>`).join('')}</g>`).join('');
     if (mood === 'haa') {
-      face = `<g stroke="#2a1a10" stroke-width="2.6" stroke-linecap="round" fill="none"><path d="M40 66 Q46 61 52 66"/><path d="M68 66 Q74 61 80 66"/></g>
-              <ellipse cx="60" cy="81" rx="7" ry="8" fill="#6b2d1d"/><ellipse cx="60" cy="85" rx="4" ry="3" fill="#ff8fa3"/>`;
+      face = `${eyesOpen}
+        <g stroke="${L}" stroke-width="1.7" stroke-linecap="round" fill="none">
+          <path d="M93 82 L92 86"/><path d="M97 80 L96.6 85"/><path d="M101 79.5 L101 84.5"/><path d="M105 80 L105.4 85"/><path d="M109 82 L110 86"/>
+          <path d="M90 92 Q94 90 97 92.5"/><path d="M103 92.5 Q106 90 110 92"/><path d="M95.5 88.5 Q100 87 104.5 88.5"/>
+        </g>
+        <path d="M86 98 L90 96 L93 99.5 L96.5 95.5 L100 99.5 L103.5 95.5 L107 99.5 L110 96 L114 98 L117 120 Q100 127 83 120Z" fill="#3a1610" stroke="${L}" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M89 98.5 L92 101.5 L95 98 M98 98.5 L100 101.5 L102 98.5 M105 98 L108 101.5 L111 98.5" stroke="#fff" stroke-width="1.6" fill="none" stroke-linejoin="round"/>
+        <path d="M91.5 119 Q100 105 108.5 119 Q100 123.5 91.5 119Z" fill="#f08c9c"/>
+        <path d="M100 112 L100 119.5" stroke="#c96270" stroke-width="1.2"/>
+        <path d="M94 131 Q100 134.5 106 131" stroke="${L}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
     } else if (mood === 'happy') {
-      face = `<g stroke="#2a1a10" stroke-width="2.6" stroke-linecap="round" fill="none"><path d="M40 67 Q46 61 52 67"/><path d="M68 67 Q74 61 80 67"/><path d="M53 77 Q60 84 67 77"/></g>`;
+      face = `<g stroke="${L}" stroke-width="2.8" stroke-linecap="round" fill="none"><path d="M66 92 Q74 84 82 92"/><path d="M118 92 Q126 84 134 92"/></g>
+        <g stroke="${L}" stroke-width="1.6" stroke-linecap="round" fill="none"><path d="M97 84 L96.6 88"/><path d="M103 84 L103.4 88"/></g>
+        <path d="M91 97 C91 103 99 103 100 97 C101 103 109 103 109 97" stroke="${L}" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M96 108 Q100 110.5 104 108" stroke="${L}" stroke-width="1.9" fill="none" stroke-linecap="round"/>`;
     } else {
-      face = `<g class="eyes"><ellipse cx="46" cy="66" rx="3.6" ry="4.8" fill="#2a1a10"/><ellipse cx="74" cy="66" rx="3.6" ry="4.8" fill="#2a1a10"/>
-              <circle cx="47.2" cy="64.4" r="1.2" fill="#fff"/><circle cx="75.2" cy="64.4" r="1.2" fill="#fff"/></g>
-              <path d="M55 77 Q57.5 80 60 77 Q62.5 80 65 77" stroke="#2a1a10" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+      face = `${eyesOpen}
+        <g stroke="${L}" stroke-width="1.6" stroke-linecap="round" fill="none"><path d="M97 84 L96.6 88"/><path d="M103 84 L103.4 88"/></g>
+        <path d="M91 97 C91 103 99 103 100 97 C101 103 109 103 109 97" stroke="${L}" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M96 108 Q100 110.5 104 108" stroke="${L}" stroke-width="1.9" fill="none" stroke-linecap="round"/>`;
     }
-    return `<g>
-      <circle cx="26" cy="31" r="10" fill="#8a4b22"/><circle cx="94" cy="31" r="10" fill="#8a4b22"/>
-      <circle cx="26" cy="32" r="5" fill="#c98b5a"/><circle cx="94" cy="32" r="5" fill="#c98b5a"/>
-      <ellipse cx="44" cy="103" rx="11" ry="6" fill="#f4dcae" stroke="#7a4220" stroke-width="2.2"/>
-      <ellipse cx="76" cy="103" rx="11" ry="6" fill="#f4dcae" stroke="#7a4220" stroke-width="2.2"/>
-      <ellipse cx="60" cy="64" rx="48" ry="40" fill="#f4dcae" stroke="#7a4220" stroke-width="2.5"/>
-      <path d="M13 58 Q14 21 60 19 Q106 21 107 58 Q86 46 60 47 Q34 46 13 58Z" fill="#9a5426" stroke="#7a4220" stroke-width="2.5" stroke-linejoin="round"/>
-      <path d="M30 35 Q43 26 57 26" stroke="#fff" stroke-opacity=".45" stroke-width="5" stroke-linecap="round" fill="none"/>
-      <g fill="#f8e6c4"><circle cx="58" cy="29" r="1.4"/><circle cx="64" cy="27" r="1.3"/><circle cx="69" cy="31" r="1.3"/><circle cx="61" cy="34" r="1.3"/><circle cx="73" cy="36" r="1.2"/></g>
-      <ellipse cx="34" cy="76" rx="7.5" ry="4.5" fill="#ff9eb5" opacity=".55"/><ellipse cx="86" cy="76" rx="7.5" ry="4.5" fill="#ff9eb5" opacity=".55"/>
+    const head = 'M100 16 C147 16 181 42 186 84 C191 123 156 152 100 152 C44 152 9 123 14 84 C19 42 53 16 100 16Z';
+    return `<g stroke-linejoin="round">
+      <path d="M80 190 C79 197 79 203 82 205 C86 207.5 91 206.5 92 203 C93 200 93 196 92 192" fill="${K.body}" stroke="${L}" stroke-width="3"/>
+      <path d="M120 190 C121 197 121 203 118 205 C114 207.5 109 206.5 108 203 C107 200 107 196 108 192" fill="${K.body}" stroke="${L}" stroke-width="3"/>
+      <path d="M61 144 C55 159 55 180 65 189 C81 197 119 197 135 189 C145 180 145 159 139 144Z" fill="${K.body}" stroke="${L}" stroke-width="3.2"/>
+      <path d="M61 151 C51 153 43 160 42 168 C41 174 47 176 51 172 C54 169 57 165 59.5 161" fill="${K.body}" stroke="${L}" stroke-width="3"/>
+      <path d="M139 151 C149 153 157 160 158 168 C159 174 153 176 149 172 C146 169 143 165 140.5 161" fill="${K.body}" stroke="${L}" stroke-width="3"/>
+      <path d="M33 37 C27 24 12 23 10 34 C8.6 42 15 48 24 47Z" fill="${K.body}" stroke="${L}" stroke-width="3"/>
+      <path d="M167 37 C173 24 188 23 190 34 C191.4 42 185 48 176 47Z" fill="${K.body}" stroke="${L}" stroke-width="3"/>
+      <path d="M16 35 C17 31 21 30 24 33 M184 35 C183 31 179 30 176 33" stroke="${L}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="${head}" fill="${K.body}"/>
+      <path clip-path="url(#kuriHeadClip)" d="M0 0 H200 V46 C170 61 134 66 100 66 C66 66 30 61 0 46Z" fill="${K.cap}"/>
+      <path clip-path="url(#kuriHeadClip)" d="M44 34 C58 25 76 21 92 21" stroke="${K.capLight}" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/>
+      <path clip-path="url(#kuriHeadClip)" d="M0 46 C30 61 66 66 100 66 C134 66 170 61 200 46" stroke="${L}" stroke-width="3" fill="none"/>
+      <path d="${head}" fill="none" stroke="${L}" stroke-width="3.4"/>
+      ${blush}
       ${face}
-      <ellipse cx="17" cy="82" rx="7" ry="9" fill="#f4dcae" stroke="#7a4220" stroke-width="2.2"/>
-      <ellipse cx="103" cy="82" rx="7" ry="9" fill="#f4dcae" stroke="#7a4220" stroke-width="2.2"/>
       ${extra}
     </g>`;
   },
-  kuriSVG(mood, extra = '') { return `<svg viewBox="0 -6 120 118" aria-label="Kurimanju">${ART.kuri(mood, extra)}</svg>`; },
+  kuriSVG(mood, extra = '') { return `<svg viewBox="2 12 196 198" aria-label="Kurimanju">${ART.kuri(mood, extra)}</svg>`; },
+
   cupIcon(type) {
     const L = y => 8 + 3 * (y - 8) / 28, R = y => 32 - 3 * (y - 8) / 28;
     const poly = (y1, y2) => `${L(y1)},${y1} ${R(y1)},${y1} ${R(y2)},${y2} ${L(y2)},${y2}`;
     const inner = type === 'matcha'
-      ? `<polygon points="${poly(19, 36)}" fill="#8fc163"/><polygon points="${poly(12, 19)}" fill="#e8f3d6"/>`
-      : `<polygon points="${poly(17, 36)}" fill="#ffba4a"/><polygon points="${poly(11, 17)}" fill="#fff4d6"/>
-         <circle cx="15" cy="32" r="2.4" fill="#fff" stroke="#e6d3c3" stroke-width=".7"/><circle cx="20" cy="33" r="2.4" fill="#fff" stroke="#e6d3c3" stroke-width=".7"/><circle cx="25" cy="32" r="2.4" fill="#fff" stroke="#e6d3c3" stroke-width=".7"/>`;
+      ? `<polygon points="${poly(12, 23)}" fill="#86bb5a"/><polygon points="${poly(22, 26)}" fill="#c8e0ad"/><polygon points="${poly(26, 36)}" fill="#fbfaf2"/>`
+      : `<polygon points="${poly(17, 36)}" fill="#ffc531"/><polygon points="${poly(11, 17.5)}" fill="#fff6e2"/>
+         <g fill="#fff" fill-opacity=".65" stroke="#c9d9e8" stroke-width=".7"><circle cx="15" cy="32.5" r="2.4"/><circle cx="20" cy="33.3" r="2.4"/><circle cx="25" cy="32.5" r="2.4"/><circle cx="17.5" cy="29.5" r="2.2"/><circle cx="22.5" cy="29.6" r="2.2"/></g>`;
     return `<svg class="ico" viewBox="0 0 40 40" aria-hidden="true">
       <rect x="22" y="1" width="4.5" height="14" rx="2" fill="#ff86ac" transform="rotate(12 24 8)"/>
       ${inner}
@@ -891,7 +995,7 @@ const ART = {
     </svg>`;
   },
   tulipIcon(color) {
-    return `<svg class="ico" viewBox="0 0 40 40" aria-hidden="true">${ART.tulip(20, 39, 22, color, 0.62, 1)}</svg>`;
+    return `<svg class="ico" viewBox="0 0 40 40" aria-hidden="true">${ART.tulip(20, 39.5, 19, color, 0.5, 0.5)}</svg>`;
   }
 };
 const ICON = {
@@ -1017,13 +1121,13 @@ function buildScene() {
     <rect x="44" y="318" width="196" height="10" rx="4" fill="#fff" stroke="#ffc2d6" stroke-width="2"/>
     <path d="M60 328 L60 344 L76 328Z M224 328 L224 344 L208 328Z" fill="#ffc2d6"/>
     <g id="kittyPlush" class="clicky" role="button" tabindex="0" aria-label="Kitty plush">
-      <g transform="translate(100 146) scale(.62)"><g id="kittyInner">${ART.kitty()}</g></g>
+      <g transform="translate(100 145) scale(.56)"><g id="kittyInner">${ART.kitty()}</g></g>
     </g>
     <g id="apples" class="clicky" role="button" tabindex="0" aria-label="Three apples">
       ${[160, 182, 204].map(x => `<g transform="translate(${x} 190)"><circle r="10" fill="#e8364f"/><path d="M0 -9 Q2 -15 1 -17" stroke="#7a4a2a" stroke-width="2" fill="none"/><path d="M1 -14 Q8 -18 10 -12 Q4 -10 1 -14Z" fill="#86b55c"/><ellipse cx="-4" cy="-3" rx="2.5" ry="4" fill="#fff" opacity=".45"/></g>`).join('')}
     </g>
     <g id="kuriPlush" class="clicky" role="button" tabindex="0" aria-label="Kurimanju plush">
-      <g transform="translate(56 258) scale(.55)"><g id="kuriPlushInner">${ART.kuri('idle')}</g></g>
+      <g transform="translate(62 262) scale(.27)"><g id="kuriPlushInner">${ART.kuri('idle')}</g></g>
     </g>
     <g>
       <rect x="132" y="266" width="38" height="52" rx="9" fill="#ffffff" fill-opacity=".55" stroke="#d9c6d0" stroke-width="2"/>
@@ -1195,9 +1299,9 @@ function weatherTick() {
    Little effects
 ================================================================= */
 const fx = $('#fxLayer');
-function sceneXY(el) {
+function sceneXY(el, fx = 0.5, fy = 0.25) {
   const r = el.getBoundingClientRect(), s = scene.getBoundingClientRect();
-  return [r.left + r.width / 2 - s.left, r.top + r.height * 0.25 - s.top];
+  return [r.left + r.width * fx - s.left, r.top + r.height * fy - s.top];
 }
 function hearts(x, y, n = 6, set = ['💖', '💕', '💗', '🌷', '✨', '🎀']) {
   for (let i = 0; i < n; i++) {
@@ -1213,8 +1317,8 @@ function steamPuffs(x, y, n = 5) {
   for (let i = 0; i < n; i++) {
     const p = document.createElement('div');
     p.className = 'steam-puff';
-    const s = rand(16, 30);
-    Object.assign(p.style, { width: s + 'px', height: s + 'px', left: (x + rand(-20, 20)) + 'px', top: (y + rand(-6, 6)) + 'px', animationDelay: (i * 0.1) + 's' });
+    const s = rand(12, 24);
+    Object.assign(p.style, { width: s + 'px', height: s + 'px', left: (x + rand(-6, 10)) + 'px', top: (y + rand(-6, 6)) + 'px', animationDelay: (i * 0.1) + 's' });
     fx.appendChild(p); setTimeout(() => p.remove(), 1900);
   }
 }
@@ -1292,22 +1396,22 @@ function plotSVG(plot) {
   const wet = plot.s === 'growing' || plot.s === 'bloom';
   let plant = '';
   if (st === 'planted') {
-    plant = `<path d="M60 90 Q49 99 51 106 L69 106 Q71 99 60 90Z" fill="#d9b48a" stroke="#b48a5e" stroke-width="1.5"/><path d="M60 90 Q61 85 63 83" stroke="#86b55c" stroke-width="2.5" stroke-linecap="round"/>`;
+    // a tulip bulb: papery brown tunic, pointed tip with the first green shoot
+    plant = `<path d="M60 82 C55 88 49 94 50 101 C51 107 69 107 70 101 C71 94 65 88 60 82Z" fill="#d8a877" stroke="#a87a50" stroke-width="1.5"/>
+      <path d="M56 90 C54 95 54 100 55 104 M64 90 C66 95 66 100 65 104 M60 86 L60 104" stroke="#bf8c5b" stroke-width="1.2" fill="none"/>
+      <path d="M53 96 C54 93 56 91 57 90" stroke="#f3d6b0" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M60 82 C60.5 79 61.5 77 63 75.5" stroke="#86b55c" stroke-width="2.6" stroke-linecap="round" fill="none"/>`;
   } else if (st === 'sprout') {
-    plant = `<path d="M60 104 Q59 94 61 86" stroke="#5d8a3a" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M61 88 Q70 82 72 86 Q66 92 61 90Z" fill="#86b55c"/>`;
+    plant = `<g transform="translate(58 104) rotate(-6)">${ART.tulipLeaf(22, 5.5)}</g><g transform="translate(62 104) rotate(10)">${ART.tulipLeaf(16, 4.8, true)}</g>`;
   } else if (st === 'leaves') {
-    plant = `<path d="M60 104 Q60 88 60 74" stroke="#5d8a3a" stroke-width="4" stroke-linecap="round"/>
-      <path d="M60 104 Q38 92 44 68 Q56 84 60 104Z" fill="#86b55c"/><path d="M60 104 Q83 94 78 72 Q64 86 60 104Z" fill="#76a64e"/>`;
-  } else if (st === 'bud' || st === 'opening') {
-    const open = st === 'opening';
-    plant = `<path d="M60 104 Q58 78 60 52" stroke="#5d8a3a" stroke-width="4" stroke-linecap="round"/>
-      <path d="M60 104 Q32 90 40 58 Q56 80 60 104Z" fill="#86b55c"/><path d="M60 104 Q88 92 80 62 Q64 84 60 104Z" fill="#76a64e"/>
-      <g transform="translate(60 54)">${open ? ART.tulipHead(c, 0.75) : `<path d="M0 2 Q-9 -6 -7 -22 Q0 -32 7 -22 Q9 -6 0 2Z" fill="${t.front}" stroke="${t.edge}" stroke-width="1.5"/><path d="M0 2 Q-8 -4 -7 -12 Q0 -6 7 -12 Q8 -4 0 2Z" fill="#a8cf7f" opacity=".85"/>`}</g>`;
+    plant = `<g transform="translate(62 104) rotate(16)">${ART.tulipLeaf(40, 11.5, true)}</g><g transform="translate(58 104) rotate(-12)">${ART.tulipLeaf(50, 13.5)}</g>`;
+  } else if (st === 'bud') {
+    plant = ART.tulip(60, 104, 44, c, 0.85, 1, 'bud');
+  } else if (st === 'opening') {
+    plant = ART.tulip(60, 104, 46, c, 0.9, 1, 'opening');
   } else if (st === 'bloom') {
-    plant = `<path d="M60 104 Q57 76 60 50" stroke="#5d8a3a" stroke-width="4.2" stroke-linecap="round"/>
-      <path d="M60 104 Q30 90 38 56 Q56 80 60 104Z" fill="#86b55c"/><path d="M60 104 Q90 92 82 60 Q64 84 60 104Z" fill="#76a64e"/>
-      <g transform="translate(60 52)"><g class="flower-head">${ART.tulipHead(c, 1.05)}</g></g>
-      <g fill="#fff" opacity=".9"><path d="M30 40 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2Z"/><path d="M92 30 l1.5 4 l4 1.5 l-4 1.5 l-1.5 4 l-1.5 -4 l-4 -1.5 l4 -1.5Z"/></g>`;
+    plant = `${ART.tulip(60, 104, 46, c, 0.95, 1, 'bloom', 'flower-head')}
+      <g fill="#fff" opacity=".9"><path d="M26 40 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2 l5 -2Z"/><path d="M95 28 l1.5 4 l4 1.5 l-4 1.5 l-1.5 4 l-1.5 -4 l-4 -1.5 l4 -1.5Z"/></g>`;
   }
   return `<svg viewBox="0 0 120 150" aria-hidden="true">
     ${plant}
@@ -1458,7 +1562,7 @@ function initGardenTools() {
 ================================================================= */
 const RECIPES = {
   matcha: {
-    name: 'Matcha Latte', base: '#6f9f48', bright: '#8cc95a',
+    name: 'Matcha Latte', base: '#6a9a3e', bright: '#7fbb45',
     steps: [
       { id: 'pour', liquid: 'matcha', label: 'Pour the matcha', target: [0.34, 0.46], cap: 0.6,
         help: 'Ceremonial matcha, sifted and mixed with ~75°C water (any hotter and it turns bitter). <b>Hold</b> the button — or hold <b>Space</b> — and let go in the green zone.' },
@@ -1470,7 +1574,7 @@ const RECIPES = {
     ]
   },
   mango: {
-    name: 'Trà Xoài Kem Cheese Trân Châu Trắng', base: '#ffb53d', bright: '#ffbe4f',
+    name: 'Trà Xoài Kem Cheese Trân Châu Trắng', base: '#ffc531', bright: '#ffc531',
     steps: [
       { id: 'pour', liquid: 'mango', label: 'Pour the trà xoài', target: [0.52, 0.64], cap: 0.76,
         help: 'Fresh mango tea over ice. <b>Hold</b> to pour and let go in the green zone.' },
@@ -1483,9 +1587,9 @@ const RECIPES = {
   }
 };
 const JUG = {
-  matcha: { fill: '#86b55c', label: 'matcha', stream: '#7fb653' },
+  matcha: { fill: '#7fb24a', label: 'matcha', stream: '#78b043' },
   milk:   { fill: '#ffffff', label: 'milk', stream: '#fffaf0' },
-  mango:  { fill: '#ffb53d', label: 'trà xoài', stream: '#ffb53d' }
+  mango:  { fill: '#ffbf2a', label: 'trà xoài', stream: '#ffc531' }
 };
 const G = { top: 70, bot: 300, tl: 100, tr: 220, bl: 116, br: 204 };
 const yOf = L => G.bot - L * (G.bot - G.top - 8);
@@ -1537,13 +1641,15 @@ function buildGlass(type) {
   $('#glassSvg').innerHTML = `
   <defs>
     <clipPath id="gClip"><polygon points="${G.tl + 3},${G.top} ${G.tr - 3},${G.top} ${G.br - 3},${G.bot - 3} ${G.bl + 3},${G.bot - 3}"/></clipPath>
-    <linearGradient id="milkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffdf6"/><stop offset=".65" stop-color="#eef6df"/><stop offset="1" stop-color="#c9e2a8"/></linearGradient>
+    <linearGradient id="blendGrad" x1="0" y1="0" x2="0" y2="1"><stop id="blendTop" offset="0" stop-color="#7fbb45"/><stop offset="1" stop-color="#fbf8ee"/></linearGradient>
+    <linearGradient id="cheeseGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffdf7"/><stop offset=".7" stop-color="#fff5df"/><stop offset="1" stop-color="#f6e2b6"/></linearGradient>
+    <radialGradient id="pearlGrad" cx=".38" cy=".35" r=".7"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".55" stop-color="#eef5ff" stop-opacity=".6"/><stop offset="1" stop-color="#cfdcec" stop-opacity=".75"/></radialGradient>
     <pattern id="filmPat" width="14" height="14" patternUnits="userSpaceOnUse"><rect width="14" height="14" fill="#ffd0e0"/><circle cx="7" cy="7" r="2.6" fill="#fff"/></pattern>
   </defs>
   <ellipse cx="160" cy="304" rx="70" ry="9" fill="rgba(217,70,122,.16)"/>
   <g id="bowlG" opacity="0" style="transition:opacity .4s">
     <ellipse cx="55" cy="252" rx="37" ry="7" fill="#f3e9df"/>
-    <path id="bowlCream" d="" fill="#fff6df" stroke="#f0dcae" stroke-width="1.5"/>
+    <path id="bowlCream" d="" fill="#fffaf0" stroke="#f0dcae" stroke-width="1.5"/>
     <path d="M18 252 Q20 302 55 302 Q90 302 92 252" fill="#fff" stroke="#ffb0c9" stroke-width="3"/>
     <g fill="#ffb0c9"><circle cx="40" cy="282" r="3"/><circle cx="55" cy="288" r="3"/><circle cx="70" cy="282" r="3"/></g>
     <text x="55" y="318" font-size="11" text-anchor="middle" fill="#b0708c" font-weight="800">kem cheese</text>
@@ -1551,11 +1657,14 @@ function buildGlass(type) {
   <g clip-path="url(#gClip)">
     <rect x="0" y="0" width="320" height="330" fill="#fff" fill-opacity=".45"/>
     <rect id="lqBase" x="80" width="160" y="${G.bot}" height="0" fill="${r.base}"/>
-    <rect id="lqMilk" x="80" width="160" y="${G.bot}" height="0" fill="url(#milkGrad)"/>
-    <path id="swirl" d="" stroke="#fff" stroke-opacity=".75" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <rect id="lqMilk" x="80" width="160" y="${G.bot}" height="0" fill="#fbf8ee"/>
+    <rect id="lqBlend" x="80" width="160" y="${G.bot}" height="0" fill="url(#blendGrad)"/>
+    <path id="swirl" d="" stroke="#8fc45a" stroke-opacity=".45" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <g id="mangoG">${[[128, 262, 8], [178, 250, -12], [150, 232, 20], [196, 214, 6], [124, 205, -18], [160, 190, 10]].map(([x, y, a]) =>
+      `<g data-y="${y}" transform="translate(${x} ${y}) rotate(${a})" opacity="0"><rect x="-7" y="-6" width="14" height="12" rx="3.5" fill="#ffad14" stroke="#f08c00" stroke-width="1"/><path d="M-4 -3.5 L2 -3.5" stroke="#ffe08a" stroke-width="2" stroke-linecap="round"/></g>`).join('')}</g>
     <g id="frothG"></g>
-    <rect id="cheeseRect" x="80" width="160" y="${G.bot}" height="0" fill="#fff6df"/>
-    <path id="cheeseTop" d="" fill="#fff6df"/>
+    <rect id="cheeseRect" x="80" width="160" y="${G.bot}" height="0" fill="url(#cheeseGrad)"/>
+    <path id="cheeseTop" d="" fill="#fffdf7"/>
     <g id="cheeseDots"></g>
     <g id="iceG">${ice}</g>
     <g id="pearlG"></g>
@@ -1564,8 +1673,11 @@ function buildGlass(type) {
     <rect x="176" y="18" width="15" height="276" rx="6" fill="#ff86ac"/>
     ${strawStripes}
   </g>
-  <polygon points="${G.tl},${G.top} ${G.tr},${G.top} ${G.br},${G.bot} ${G.bl},${G.bot}" fill="none" stroke="#e0bfd0" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M${G.tl} ${G.top} L${G.bl - 1} ${G.bot - 9} Q${G.bl} ${G.bot} ${G.bl + 9} ${G.bot} L${G.br - 9} ${G.bot} Q${G.br} ${G.bot} ${G.br + 1} ${G.bot - 9} L${G.tr} ${G.top}" fill="none" stroke="#e0bfd0" stroke-width="4" stroke-linejoin="round"/>
   <path d="M110 86 L122 286" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".75"/>
+  <path d="M204 92 L198 200" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".45"/>
+  <g opacity=".92"><rect x="132" y="112" width="56" height="22" rx="11" fill="#fff" fill-opacity=".82" stroke="#ff86ac" stroke-width="1.6"/>
+    <text x="160" y="127.5" font-size="11.5" text-anchor="middle" fill="#d9467a" font-weight="800" font-family="Baloo 2, Nunito, sans-serif">Boba's ♡</text></g>
   <rect x="${G.tl - 6}" y="${G.top - 7}" width="${G.tr - G.tl + 12}" height="9" rx="4" fill="#ffe6ef" stroke="#e0bfd0" stroke-width="2"/>
   <g id="filmG" opacity="0" style="transition:opacity .3s">
     <rect x="${G.tl - 7}" y="${G.top - 12}" width="${G.tr - G.tl + 14}" height="12" rx="5" fill="url(#filmPat)" stroke="#ff86ac" stroke-width="2"/>
@@ -1583,7 +1695,7 @@ function buildGlass(type) {
   <g id="ladleG" opacity="0" style="transition:opacity .3s, transform .25s;transform-box:fill-box;transform-origin:100% 50%">
     <path d="M238 34 L292 4" stroke="#c98aa6" stroke-width="6" stroke-linecap="round"/>
     <path d="M222 30 Q222 48 238 48 Q254 48 254 30Z" fill="#ffd0e0" stroke="#c98aa6" stroke-width="2.5"/>
-    <g fill="#fff" stroke="#d9d2e6"><circle cx="232" cy="32" r="4"/><circle cx="242" cy="31" r="4"/><circle cx="237" cy="26" r="4"/></g>
+    <g fill="url(#pearlGrad)" stroke="#b9c9dc"><circle cx="232" cy="32" r="4"/><circle cx="242" cy="31" r="4"/><circle cx="237" cy="26" r="4"/></g>
   </g>`;
 }
 function jugSVG(liq) {
@@ -1619,24 +1731,30 @@ function setTool(kind, x, y, rot = 0) {
 
 function drawLiquids(t = performance.now()) {
   const r = RECIPES[B.drink];
-  const yb = yOf(B.base), ym = yOf(B.base + B.milk);
-  const base = $('#lqBase');
-  base.setAttribute('y', yb); base.setAttribute('height', G.bot - yb);
-  base.setAttribute('fill', B.drink === 'matcha' ? mixHex(r.base, r.bright, clamp(B.whisk, 0, 1)) : r.base);
-  const milk = $('#lqMilk');
-  milk.setAttribute('y', ym); milk.setAttribute('height', Math.max(0, yb - ym));
+  const total = B.base + B.milk, yt = yOf(total);
+  const green = B.drink === 'matcha' ? mixHex(r.base, r.bright, clamp(B.whisk, 0, 1)) : r.base;
+  const set = (id, y, h) => { const el = $(id); el.setAttribute('y', y); el.setAttribute('height', Math.max(0, h)); };
+  // cold milk is denser than whisked matcha, so it sinks and the green floats on top
+  const ym = yOf(B.milk);
+  set('#lqBase', yt, (B.milk > 0.005 ? ym : G.bot) - yt);
+  $('#lqBase').setAttribute('fill', green);
+  set('#lqMilk', ym, G.bot - ym);
   const sw = $('#swirl');
-  if (B.milk > 0.01) {
-    const ph = Math.sin(t / 260) * 6, mid = (yb + ym) / 2;
-    sw.setAttribute('d', `M84 ${yb - 2} Q120 ${yb - 10 + ph} 160 ${yb - 3} T236 ${yb - 4} M96 ${mid} Q130 ${mid + 8 - ph} 168 ${mid} T230 ${mid + 4}`);
-    sw.setAttribute('stroke-opacity', String(clamp(0.85 - B.milk, 0.15, 0.75)));
-  } else sw.setAttribute('d', '');
-  // cheese foam sits on the tea
+  if (B.milk > 0.005) {
+    $('#blendTop').setAttribute('stop-color', green);
+    const band = Math.min(26, (G.bot - yt) * 0.35);
+    set('#lqBlend', ym - band / 2, band);
+    const ph = Math.sin(t / 300) * 5;
+    sw.setAttribute('d', `M90 ${ym + 6} Q118 ${ym - 6 + ph} 142 ${ym + 10} T200 ${ym + 4} M104 ${ym + 22} Q130 ${ym + 12 - ph} 158 ${ym + 26} T226 ${ym + 18}`);
+  } else { set('#lqBlend', G.bot, 0); sw.setAttribute('d', ''); }
+  $('#frothG').setAttribute('transform', `translate(0 ${yt - yOf(B.base)})`);
+  // mango chunks are only visible once the tea covers them
+  $$('#mangoG > g').forEach(g => g.setAttribute('opacity', B.drink === 'mango' && +g.dataset.y > yOf(B.base) + 6 ? '1' : '0'));
   if (B.cheese > 0) {
-    const yc = yOf(B.base + B.cheese);
-    const cr = $('#cheeseRect'); cr.setAttribute('y', yc + 4); cr.setAttribute('height', Math.max(0, yb - yc - 4));
+    const yb = yOf(B.base), yc = yOf(B.base + B.cheese);
+    set('#cheeseRect', yc + 4, yb - yc - 2);
     let d = `M80 ${yc + 6}`;
-    for (let x = 80; x <= 240; x += 16) d += ` Q${x + 8} ${yc - 5 - ((x / 16) % 2) * 3} ${x + 16} ${yc + 4}`;
+    for (let x = 80; x <= 240; x += 14) d += ` Q${x + 7} ${yc - 6 - ((x / 14) % 2) * 3} ${x + 14} ${yc + 4}`;
     $('#cheeseTop').setAttribute('d', d + ` L240 ${yc + 10} L80 ${yc + 10}Z`);
   }
 }
@@ -1646,9 +1764,9 @@ function drawFroth() {
   for (let i = 0; i < n; i++) {
     const seed = Math.sin(i * 12.9898) * 43758.5453, fr = seed - Math.floor(seed);
     const x = lerp(xL(y0) + 6, xR(y0) - 6, (i * 0.618) % 1), y = y0 + 1 + fr * 7;
-    h += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(1.4 + fr * 2.2).toFixed(1)}" fill="#e9f6d2" opacity=".85"/>`;
+    h += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(1.4 + fr * 2.2).toFixed(1)}" fill="#eef8dc" stroke="#b5d88a" stroke-width=".6" opacity=".9"/>`;
   }
-  if (n > 8) h = `<rect x="80" y="${y0 - 1}" width="160" height="${4 + B.whisk * 5}" fill="#cbe6a4" opacity=".75"/>` + h;
+  if (n > 8) h = `<rect x="80" y="${y0 - 1}" width="160" height="${4 + B.whisk * 6}" fill="#cfe8a8" opacity=".85"/>` + h;
   $('#frothG').innerHTML = h;
 }
 function drawBowl() {
@@ -1791,7 +1909,8 @@ function whiskBump(amount, x) {
         else {
           let dots = '';
           const yc = yOf(B.base + B.cheese);
-          for (let i = 0; i < 14; i++) dots += `<circle cx="${rand(xL(yc) + 8, xR(yc) - 8).toFixed(1)}" cy="${(yc + rand(1, 8)).toFixed(1)}" r="1.3" fill="#f0c56a"/>`;
+          for (let i = 0; i < 18; i++) dots += `<circle cx="${rand(xL(yc) + 8, xR(yc) - 8).toFixed(1)}" cy="${(yc + rand(-2, 6)).toFixed(1)}" r="${rand(0.9, 1.6).toFixed(1)}" fill="#f2b84b" opacity=".85"/>`;
+          for (let i = 0; i < 10; i++) dots += `<circle cx="${rand(xL(yc) + 10, xR(yc) - 10).toFixed(1)}" cy="${(yc + rand(8, 22)).toFixed(1)}" r="${rand(1, 2.2).toFixed(1)}" fill="none" stroke="#efd9a8" stroke-width=".8"/>`;
           $('#cheeseDots').innerHTML = dots;
           $('#bowlG').setAttribute('opacity', '0');
           B.busy = false;
@@ -1840,7 +1959,7 @@ function scoopBoba() {
   for (let i = 0; i < 7; i++) {
     const slot = B.slots[B.pearls.length]; if (!slot) break;
     const c = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    c.innerHTML = `<circle r="5.2" fill="#fbfbff" stroke="#d6cfe4" stroke-width="1"/><circle cx="-1.6" cy="-1.8" r="1.5" fill="#fff"/>`;
+    c.innerHTML = `<circle r="5.4" fill="url(#pearlGrad)" stroke="#b9c9dc" stroke-width="1.1"/><ellipse cx="-1.8" cy="-2.1" rx="1.9" ry="1.3" fill="#fff"/><circle cx="2" cy="2.1" r=".9" fill="#fff" opacity=".7"/>`;
     g.appendChild(c);
     const p = { el: c, x: rand(170, 200), y: 30 - i * 9, vy: rand(0, 40), tx: slot[0], ty: slot[1], settled: false };
     B.pearls.push(p);
@@ -2033,28 +2152,29 @@ function fill(str, c) {
 }
 
 /* ---- avatar art ---- */
+const hs = col => `stroke="${mixHex(col, '#1a1010', 0.35)}" stroke-width="1.8" stroke-linejoin="round"`;
 function hairBack(style, col) {
   switch (style) {
-    case 'long': return `<path d="M26 172 Q12 40 70 32 Q128 40 114 172 Q98 178 92 160 L92 104 L48 104 L48 160 Q42 178 26 172Z" fill="${col}"/>`;
-    case 'bob': return `<path d="M28 112 Q22 36 70 34 Q118 36 112 112 Q102 118 98 106 L42 106 Q38 118 28 112Z" fill="${col}"/>`;
-    case 'pigtails': return `<circle cx="28" cy="98" r="14" fill="${col}"/><circle cx="112" cy="98" r="14" fill="${col}"/>`;
-    case 'ponytail': return `<path d="M98 48 Q134 64 122 132 Q110 124 104 92Z" fill="${col}"/>`;
-    case 'curly': return [[34, 70], [106, 70], [30, 92], [110, 92], [40, 50], [100, 50]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="14" fill="${col}"/>`).join('');
+    case 'long': return `<path d="M26 172 Q12 40 70 32 Q128 40 114 172 Q98 178 92 160 L92 104 L48 104 L48 160 Q42 178 26 172Z" fill="${col}" ${hs(col)}/>`;
+    case 'bob': return `<path d="M28 112 Q22 36 70 34 Q118 36 112 112 Q102 118 98 106 L42 106 Q38 118 28 112Z" fill="${col}" ${hs(col)}/>`;
+    case 'pigtails': return `<circle cx="28" cy="98" r="14" fill="${col}" ${hs(col)}/><circle cx="112" cy="98" r="14" fill="${col}" ${hs(col)}/>`;
+    case 'ponytail': return `<path d="M98 48 Q134 64 122 132 Q110 124 104 92Z" fill="${col}" ${hs(col)}/>`;
+    case 'curly': return [[34, 70], [106, 70], [30, 92], [110, 92], [40, 50], [100, 50]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="14" fill="${col}" ${hs(col)}/>`).join('');
     default: return '';
   }
 }
 function hairFront(style, col) {
   switch (style) {
-    case 'short': return `<path d="M34 84 Q30 38 70 36 Q110 38 106 84 Q102 62 88 56 Q74 66 52 58 Q40 64 34 84Z" fill="${col}"/>`;
-    case 'side': return `<path d="M34 86 Q30 38 72 36 Q112 40 106 78 Q98 52 60 64 Q44 70 34 86Z" fill="${col}"/>`;
-    case 'spiky': return `<path d="M34 82 L35 52 L45 58 L48 38 L59 50 L68 30 L77 48 L87 34 L91 52 L102 44 L106 82 Q100 60 70 58 Q40 60 34 82Z" fill="${col}"/>`;
-    case 'bowl': return `<path d="M33 82 Q30 36 70 36 Q110 36 107 82 L107 72 L33 72Z" fill="${col}"/>`;
-    case 'bald': return `<path d="M34 94 Q30 72 40 62 L45 64 Q40 78 42 94Z M106 94 Q110 72 100 62 L95 64 Q100 78 98 94Z" fill="${col}"/>`;
-    case 'curly': return [200, 218, 236, 254, 272, 290, 308, 326, 344].map(a => { const r = a * Math.PI / 180; return `<circle cx="${(70 + Math.cos(r) * 33).toFixed(1)}" cy="${(76 + Math.sin(r) * 36).toFixed(1)}" r="11" fill="${col}"/>`; }).join('');
-    case 'bun': return `<path d="M34 80 Q32 38 70 38 Q108 38 106 80 Q100 56 70 54 Q40 56 34 80Z" fill="${col}"/><circle cx="70" cy="32" r="15" fill="${col}"/>`;
+    case 'short': return `<path d="M34 84 Q30 38 70 36 Q110 38 106 84 Q102 62 88 56 Q74 66 52 58 Q40 64 34 84Z" fill="${col}" ${hs(col)}/>`;
+    case 'side': return `<path d="M34 86 Q30 38 72 36 Q112 40 106 78 Q98 52 60 64 Q44 70 34 86Z" fill="${col}" ${hs(col)}/>`;
+    case 'spiky': return `<path d="M34 82 L35 52 L45 58 L48 38 L59 50 L68 30 L77 48 L87 34 L91 52 L102 44 L106 82 Q100 60 70 58 Q40 60 34 82Z" fill="${col}" ${hs(col)}/>`;
+    case 'bowl': return `<path d="M33 82 Q30 36 70 36 Q110 36 107 82 L107 72 L33 72Z" fill="${col}" ${hs(col)}/>`;
+    case 'bald': return `<path d="M34 94 Q30 72 40 62 L45 64 Q40 78 42 94Z M106 94 Q110 72 100 62 L95 64 Q100 78 98 94Z" fill="${col}" ${hs(col)}/>`;
+    case 'curly': return [200, 218, 236, 254, 272, 290, 308, 326, 344].map(a => { const r = a * Math.PI / 180; return `<circle cx="${(70 + Math.cos(r) * 33).toFixed(1)}" cy="${(76 + Math.sin(r) * 36).toFixed(1)}" r="11" fill="${col}" ${hs(col)}/>`; }).join('');
+    case 'bun': return `<path d="M34 80 Q32 38 70 38 Q108 38 106 80 Q100 56 70 54 Q40 56 34 80Z" fill="${col}" ${hs(col)}/><circle cx="70" cy="32" r="15" fill="${col}" ${hs(col)}/>`;
     case 'long': case 'bob': case 'pigtails':
-      return `<path d="M35 80 Q33 40 70 38 Q107 40 105 80 L105 72 Q88 64 70 66 Q52 64 35 72Z" fill="${col}"/>`;
-    case 'ponytail': return `<path d="M34 82 Q30 38 70 36 Q110 38 106 82 Q96 58 70 56 Q46 58 34 82Z" fill="${col}"/>`;
+      return `<path d="M35 80 Q33 40 70 38 Q107 40 105 80 L105 72 Q88 64 70 66 Q52 64 35 72Z" fill="${col}" ${hs(col)}/>`;
+    case 'ponytail': return `<path d="M34 82 Q30 38 70 36 Q110 38 106 82 Q96 58 70 56 Q46 58 34 82Z" fill="${col}" ${hs(col)}/>`;
     default: return '';
   }
 }
@@ -2075,7 +2195,7 @@ function hatSVG(hat, acc) {
 function avatarSVG(c, mood = 'idle', faceOnly = false) {
   if (c.kuri) return ART.kuriSVG(mood === 'happy' ? 'haa' : mood);
   const kid = c.group === 'kid', elder = c.group === 'elder';
-  const skinShade = mixHex(c.skin, '#b0705a', 0.18);
+  const skinShade = mixHex(c.skin, '#b0705a', 0.18), skinLine = mixHex(c.skin, '#5a3446', 0.42);
   const body = kid
     ? `M24 222 Q24 156 50 144 Q70 138 90 144 Q116 156 116 222Z`
     : `M12 222 Q12 150 46 138 Q70 132 94 138 Q128 150 128 222Z`;
@@ -2090,8 +2210,10 @@ function avatarSVG(c, mood = 'idle', faceOnly = false) {
   const ex = kid ? 1.25 : 1;
   const eyes = mood === 'happy'
     ? `<g stroke="#3b2a2a" stroke-width="3" stroke-linecap="round" fill="none"><path d="M51 84 Q57 77 63 84"/><path d="M77 84 Q83 77 89 84"/></g>`
-    : `<g class="eyes"><ellipse cx="57" cy="82" rx="${4 * ex}" ry="${5 * ex}" fill="#3b2a2a"/><ellipse cx="83" cy="82" rx="${4 * ex}" ry="${5 * ex}" fill="#3b2a2a"/>
-       <circle cx="58.4" cy="80" r="${1.4 * ex}" fill="#fff"/><circle cx="84.4" cy="80" r="${1.4 * ex}" fill="#fff"/></g>`;
+    : `<g class="eyes">${[57, 83].map(x => `<ellipse cx="${x}" cy="82" rx="${4.7 * ex}" ry="${5.9 * ex}" fill="#2f2124"/>
+         <ellipse cx="${x}" cy="${82 + 2.7 * ex}" rx="${3.3 * ex}" ry="${2.5 * ex}" fill="${c.iris || '#7a5240'}" opacity=".85"/>
+         <circle cx="${x + 1.6 * ex}" cy="${82 - 2.4 * ex}" r="${1.75 * ex}" fill="#fff"/><circle cx="${x - 1.5 * ex}" cy="${82 + 2.3 * ex}" r="${0.85 * ex}" fill="#fff" opacity=".85"/>`).join('')}
+       ${c.lashes ? `<path d="M51.6 78 L48.6 75.6 M88.4 78 L91.4 75.6" stroke="#2f2124" stroke-width="1.8" stroke-linecap="round"/>` : ''}</g>`;
   const brows = kid ? '' : `<path d="M50 ${mood === 'happy' ? 70 : 72} Q57 68 63 71 M77 71 Q83 68 90 ${mood === 'happy' ? 70 : 72}" stroke="${elder ? '#9a9a9a' : c.hairCol}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
   const mouth = mood === 'happy'
     ? `<path d="M60 97 Q70 112 80 97Z" fill="#c0485a"/><path d="M64 104 Q70 108 76 104" fill="#ff8fa3"/>`
@@ -2107,11 +2229,12 @@ function avatarSVG(c, mood = 'idle', faceOnly = false) {
     ${straps}
     <rect x="60" y="104" width="20" height="34" rx="9" fill="${skinShade}"/>
     ${collar}
-    <circle cx="36" cy="84" r="8" fill="${c.skin}"/><circle cx="104" cy="84" r="8" fill="${c.skin}"/>
-    <ellipse cx="70" cy="78" rx="${kid ? 36 : 34}" ry="${kid ? 39 : 38}" fill="${c.skin}"/>
+    <circle cx="36" cy="84" r="8" fill="${c.skin}" stroke="${skinLine}" stroke-width="1.8"/><circle cx="104" cy="84" r="8" fill="${c.skin}" stroke="${skinLine}" stroke-width="1.8"/>
+    <ellipse cx="70" cy="78" rx="${kid ? 36 : 34}" ry="${kid ? 39 : 38}" fill="${c.skin}" stroke="${skinLine}" stroke-width="1.8"/>
+    <path d="M68.6 91.6 Q70 93.2 71.4 91.6" stroke="${skinLine}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
     <ellipse cx="50" cy="95" rx="7" ry="4" fill="#ff8fab" opacity="${kid ? 0.6 : 0.42}"/><ellipse cx="90" cy="95" rx="7" ry="4" fill="#ff8fab" opacity="${kid ? 0.6 : 0.42}"/>
     ${freckles}${wrinkles}${eyes}${brows}${mouth}
-    ${hairFront(c.hair, c.hairCol)}${pigBows}${glasses}${hatSVG(c.hat, c.accent)}
+    ${hairFront(c.hair, c.hairCol)}${['short', 'side', 'bob', 'long', 'pigtails', 'bowl', 'bun', 'ponytail'].includes(c.hair) && !['nonla', 'cap', 'bucket', 'beret'].includes(c.hat) ? `<path d="M46 55 Q55 45.5 68 43.5" stroke="#fff" stroke-opacity=".3" stroke-width="4" fill="none" stroke-linecap="round"/>` : ''}${pigBows}${glasses}${hatSVG(c.hat, c.accent)}
   </svg>`;
 }
 
@@ -2194,7 +2317,8 @@ function baseLook(group) {
     skin: pick(SKIN), hairCol: elder ? pick(GREY) : pick(HAIR), hair: pick(hairPool), hat: pick(hatPool),
     shirt: pick(SHIRT), accent: pick(ACCENT), glasses: elder ? chance(0.6) : chance(0.18), freckles: chance(0.15),
     collar: pick(elder ? ['aodai', 'shirt', 'cardigan', 'tee'] : group === 'adult' ? ['aodai', 'shirt', 'cardigan', 'tee'] : ['tee', 'hoodie', 'shirt', 'tee']),
-    backpack: kid && chance(0.6)
+    backpack: kid && chance(0.6),
+    iris: pick(['#7a5240', '#5b4636', '#4f6f8f', '#5f7a4a', '#8a5a3c']), lashes: chance(0.4)
   };
 }
 
@@ -2326,7 +2450,7 @@ function doServe(c, paper) {
     c.el.innerHTML = ART.kuriSVG('haa');
     say(c, 'ハーッ!!!', 'haa');
     Sound.haa();
-    const [x, y] = sceneXY(c.el); steamPuffs(x, y + 10, 7);
+    const [x, y] = sceneXY(c.el, 0.62, 0.5); steamPuffs(x, y, 6);
     setTimeout(() => { if (!c.leaving) { c.el.innerHTML = ART.kuriSVG('happy'); say(c, '(gives you a tiny thumbs-up ✨)', 'kind'); } }, 1800);
   } else {
     const kind = fill(pick(T.kind[c.lang][c.group]), c);
@@ -2383,8 +2507,8 @@ function bouquetSVG(order, pi, uid) {
     const a = n === 1 ? 0 : -24 + (48 * i) / (n - 1);
     const r = a * Math.PI / 180, len = 92 + (i % 2) * 14;
     const tx = 100 + Math.sin(r) * len, ty = 168 - Math.cos(r) * len;
-    fl += `<path d="M100 168 L${tx.toFixed(1)} ${ty.toFixed(1)}" stroke="#5d8a3a" stroke-width="3.4"/>
-      <path d="M${(100 + Math.sin(r) * 40).toFixed(1)} ${(168 - Math.cos(r) * 40).toFixed(1)} q${a > 0 ? 16 : -16} -14 ${a > 0 ? 8 : -8} -36 q-6 18 -8 36Z" fill="#86b55c"/>
+    fl += `<path d="M100 168 L${tx.toFixed(1)} ${ty.toFixed(1)}" stroke="url(#tpStem)" stroke-width="4"/>
+      <g transform="translate(${(100 + Math.sin(r) * 34).toFixed(1)} ${(168 - Math.cos(r) * 34).toFixed(1)}) rotate(${a + (a >= 0 ? 16 : -16)})">${ART.tulipLeaf(46, 11, a >= 0)}</g>
       <g transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)}) rotate(${a})">${ART.tulipHead(c, 0.95)}</g>`;
   });
   let pat = '', frontFill = '#fff';
@@ -2434,13 +2558,14 @@ function myCupSVG(cup) {
   let inner = '';
   if (cup.level > 0.01) {
     if (cup.type === 'matcha') {
-      const mid = top + (104 - top) * 0.45;
-      inner = `<polygon points="${poly(top, mid)}" fill="#f2f7e6"/><polygon points="${poly(mid, 104)}" fill="#9cc96f"/>`;
+      // green matcha floats on the milk, with a soft blended band between them
+      const mid = Math.max(top, 104 - 50), band = Math.min(8, (104 - top) * 0.3);
+      inner = `<polygon points="${poly(top, 104)}" fill="#fbf8ee"/>${mid > top ? `<polygon points="${poly(top, mid)}" fill="#7fbb45"/><polygon points="${poly(mid - 0.5, Math.min(104, mid + band))}" fill="#bfdc98"/>` : ''}`;
     } else {
-      inner = `<polygon points="${poly(top, Math.min(104, top + 12))}" fill="#fff4d6"/><polygon points="${poly(Math.min(104, top + 12), 104)}" fill="#ffba4a"/>`;
+      inner = `<polygon points="${poly(top, Math.min(104, top + 14))}" fill="#fff8e8"/><polygon points="${poly(Math.min(104, top + 14), 104)}" fill="#ffc531"/>`;
     }
   }
-  const pearls = cup.type === 'mango' ? [24, 33, 42, 51, 58].map((x, i) => `<circle cx="${x}" cy="${98 - (i % 2) * 5}" r="4" fill="#fff" stroke="#e1d6e6"/>`).join('') : '';
+  const pearls = cup.type === 'mango' ? [24, 33, 42, 51, 58, 28.5, 37.5, 46.5].map((x, i) => `<circle cx="${x}" cy="${i < 5 ? 99 - (i % 2) * 2 : 92}" r="4" fill="#f4f8ff" fill-opacity=".6" stroke="#b9c9dc" stroke-width="1"/>`).join('') : '';
   return `<svg viewBox="0 0 80 110" width="90" aria-hidden="true">
     <rect x="44" y="-2" width="8" height="70" rx="3" fill="#ff86ac" transform="rotate(8 48 30)"/>
     ${inner}${pearls}
@@ -2455,7 +2580,7 @@ function vaseSVG(list, w = 120) {
     const a = n === 1 ? 0 : -30 + (60 * i) / (n - 1);
     const r = a * Math.PI / 180, len = 58 + ((i * 7) % 3) * 8;
     const tx = 60 + Math.sin(r) * len, ty = 92 - Math.cos(r) * len;
-    fl += `<path d="M60 92 L${tx.toFixed(1)} ${ty.toFixed(1)}" stroke="#5d8a3a" stroke-width="2.6"/><g transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)}) rotate(${a})">${ART.tulipHead(c, 0.62)}</g>`;
+    fl += `<path d="M60 92 L${tx.toFixed(1)} ${ty.toFixed(1)}" stroke="url(#tpStem)" stroke-width="2.8"/>${i % 2 ? '' : `<g transform="translate(${(60 + Math.sin(r) * 22).toFixed(1)} ${(92 - Math.cos(r) * 22).toFixed(1)}) rotate(${a + (a >= 0 ? 18 : -18)})">${ART.tulipLeaf(30, 7.5, a >= 0)}</g>`}<g transform="translate(${tx.toFixed(1)} ${ty.toFixed(1)}) rotate(${a})">${ART.tulipHead(c, 0.62)}</g>`;
   });
   return `<svg viewBox="0 0 120 140" width="${w}" aria-hidden="true">${fl}
     <path d="M40 86 Q30 120 46 134 L74 134 Q90 120 80 86Z" fill="#fff" stroke="#ffb0c9" stroke-width="3"/>
@@ -2506,7 +2631,7 @@ function kanpai() {
   setTimeout(() => {
     setKuriMood('haa'); Sound.haa();
     const k = $('#sceneKuri');
-    if (k) { const [x, y] = sceneXY(k); steamPuffs(x, y, 7); sceneSay(x, y - 30, 'ハーッ!!!', true); }
+    if (k) { const [x, y] = sceneXY(k); const [mx, my] = sceneXY(k, 0.62, 0.5); steamPuffs(mx, my, 6); sceneSay(x, y - 30, 'ハーッ!!!', true); }
     $('#kuriLine').textContent = 'ハーッ!!!';
   }, 380);
   setTimeout(() => {
@@ -2588,7 +2713,7 @@ function nap() {
   let stars = '';
   for (let i = 0; i < 40; i++) stars += `<span class="star" style="left:${rand(0, 100)}%;top:${rand(0, 70)}%;animation-delay:${rand(0, 2.5).toFixed(2)}s"></span>`;
   o.innerHTML = `${stars}<div style="text-align:center;position:relative">
-    <svg viewBox="-70 -60 140 150" width="150" aria-hidden="true">${ART.kitty(true)}</svg>
+    <svg viewBox="-90 -62 180 166" width="170" aria-hidden="true">${ART.kitty(true)}</svg>
     <div class="zz">z z Z</div><p>Boba is taking a little nap…<br><small>tap anywhere to wake up</small></p></div>`;
   document.body.appendChild(o);
   Sound.snore();
@@ -2692,7 +2817,7 @@ function initToys() {
   kp.addEventListener('click', () => {
     Sound.init(); Sound.haa();
     $('#kuriPlushInner').innerHTML = ART.kuri('haa');
-    const [x, y] = sceneXY(kp); steamPuffs(x, y, 4); sceneSay(x, y, 'ハーッ!', true);
+    const [x, y] = sceneXY(kp); const [mx, my] = sceneXY(kp, 0.62, 0.5); steamPuffs(mx, my, 4); sceneSay(x, y, 'ハーッ!', true);
     setTimeout(() => { $('#kuriPlushInner').innerHTML = ART.kuri('idle'); }, 1500);
   });
   $('#signG').addEventListener('click', toggleShop);
@@ -2716,14 +2841,15 @@ function updateAudioButtons() {
   $('#btnSound').setAttribute('aria-pressed', String(S.settings.sound));
 }
 function init() {
+  document.body.insertAdjacentHTML('afterbegin', GLOBAL_DEFS);
   const returning = load();
   buildScene();
   renderGarden(); initGardenTools(); initBar(); initToys();
   renderTray(); renderJar(); renderOrders(); applyOpenState(); updateAudioButtons();
   $('#welcomeArt').innerHTML = `<svg viewBox="0 0 300 140" width="300" aria-hidden="true">
-      <g transform="translate(70 66) scale(.72)">${ART.kitty()}</g>
+      <g transform="translate(62 70) scale(.6)">${ART.kitty()}</g>
       <g transform="translate(120 52)">${ART.tulip(14, 82, 60, 'pink', 0.8, -6)}${ART.tulip(34, 82, 72, 'white', 0.8, 2)}${ART.tulip(54, 82, 58, 'pink', 0.8, 8)}</g>
-      <g transform="translate(196 50) scale(.75)">${ART.kuri('happy')}</g></svg>`;
+      <g transform="translate(205 44) scale(.44)">${ART.kuri('happy')}</g></svg>`;
   if (returning) {
     $('#welcomeTitle').textContent = 'Welcome back, Boba! 💕';
     $('#welcomeSub').innerHTML = S.journal.length ? `You have <b>${S.journal.length}</b> kind note${S.journal.length > 1 ? 's' : ''} in your journal. The tulips missed you.` : 'The tulips missed you.';
