@@ -1,4 +1,4 @@
-"""Verify BUSM1042_A3_Q2_LeadTime.xlsx three independent ways plus the golden expected values.
+"""Verify the Q2 lead-time workbook (v3) three independent ways plus the golden expected values.
 
 Usage:
   python3 -I verify.py recalc  <built.xlsx> <recalc_dir> <recalc.py>   # LibreOffice values-cached copy
@@ -8,6 +8,7 @@ Usage:
 Method A = pandas on the ORIGINAL file; Method B = plain openpyxl row loop on the ORIGINAL file (no pandas);
 Method C = the workbook's own Excel formulas, recalculated by LibreOffice and read with data_only=True.
 """
+import json
 import os
 import re
 import shutil
@@ -378,8 +379,10 @@ def method_c(recalc):
         res[("C3", lab, "n")], res[("C3", lab, "c")], res[("C3", lab, "rate")] = \
             q[f"B{r}"].value, q[f"C{r}"].value, q[f"D{r}"].value
     d0 = find_row(q, "Table D:") + 2
-    res["D"] = [[q.cell(row=d0 + i, column=j).value for j in range(1, 7)] for i in range(6)]
-    res["D_hdr"] = [q.cell(row=d0 - 1, column=j).value for j in range(1, 7)]
+    res["D"] = [[q.cell(row=d0 + i, column=j).value for j in range(1, 5)] for i in range(6)]
+    res["D_hdr"] = [q.cell(row=d0 - 1, column=j).value for j in range(1, 5)]
+    res["D_rows"] = (d0 - 2, d0 - 1, d0, d0 + 5, d0 + 6)  # title, header, first, last, note
+    res["D_note"] = q.cell(row=d0 + 6, column=1).value
     t = wb["Table1_DataQuality"]
     t1map = {}
     for r in range(5, 60):
@@ -408,7 +411,8 @@ def method_c(recalc):
         res["rf"].append((rf[f"A{r}"].value, rf[f"C{r}"].value, rf[f"D{r}"].value, rf[f"E{r}"].value))
     f = wb["Figure2"]
     res["fig_caption"] = f["A1"].value
-    res["fig_note"], res["fig_source"] = f["A26"].value, f["A27"].value
+    res["fig_note"], res["fig_source"] = f["A24"].value, f["A25"].value
+    res["fig_print_area"] = f.print_area
     wb.close()
     return res, cells
 
@@ -552,30 +556,48 @@ def stage_check(src, built, recalc, report):
             exp = f"{G_T1[k + '_pct']}%"
         rec("Table 1 counts", f"{lab} (row {row})", fmt(a), fmt(b), fmt(c), exp, ok)
 
-    # ---- Table D, Checks sheet, Report_Figures, Figure 2 texts
+    # ---- Table D (feeds Figure 2): displayed labels character for character, values, check column
     D = Cv["D"]
+    rec("Table D (chart data)", "position: title / header / data / note rows", "", "", str(Cv["D_rows"]),
+        "(49, 50, 51, 56, 57)", Cv["D_rows"] == (49, 50, 51, 56, 57))
+    nr_over = int(Decimal(str(G_NR["Over 365"][1])).quantize(Decimal("1"), rounding=ROUND_HALF_UP))  # 59.24 -> 59
     for i, lab in enumerate(LABELS):
         row = D[i]
-        want_cat = f"{lab}\nn = {A[('A', lab, 'n')]:,}"
-        ota = row[3]
-        ota_ok = (ota == "#N/A") if A[("A", lab, "ota_n")] < 30 else abs(ota - A[("A", lab, "ota_rate")]) < 1e-12
-        ok = (row[0] == want_cat and abs(row[1] - A[("A", lab, "rate")]) < 1e-12
-              and abs(row[2] - A[("A", lab, "nd_rate")]) < 1e-12 and ota_ok)
-        rec("Table D (chart data)", f"{lab}", repr(row[0]), "", f"{fmt(row[1])} / {fmt(row[2])} / {row[3]}",
-            "label + 3 series (OTA #N/A if n<30)", ok)
-    want_hdr = ["All bookings", "No-deposit bookings", "No-deposit online travel agent bookings"]
-    rec("Table D (chart data)", "series names (legend)", "", "", " | ".join(Cv["D_hdr"][1:4]), " | ".join(want_hdr),
-        Cv["D_hdr"][1:4] == want_hdr)
+        n, c, _ = G_ALL[lab]  # expected label built from the golden values, not from the workbook
+        want_cat = f"{lab}\n{n:,} bookings\n{c:,} cancelled" + (f"\n{nr_over}% non-refundable"
+                                                                  if lab == "Over 365" else "")
+        rec("Table D (chart data)", f"{lab}: displayed axis label (exact characters)", "", "", repr(row[0]),
+            repr(want_cat), row[0] == want_cat)
+        ok = (abs(row[1] - A[("A", lab, "rate")]) < 1e-12 and abs(row[1] - B[("A", lab, "rate")]) < 1e-12
+              and abs(row[2] - A[("A", lab, "nd_rate")]) < 1e-12 and abs(row[2] - B[("A", lab, "nd_rate")]) < 1e-12
+              and r1(row[1]) == g1(G_ALL[lab][2]) and abs(float(row[1]) * 100 - G_ALL[lab][2]) <= 0.005 + 1e-9
+              and r1(row[2]) == g1(G_ND[lab][2]) and abs(float(row[2]) * 100 - G_ND[lab][2]) <= 0.005 + 1e-9)
+        rec("Table D (chart data)", f"{lab}: all / no-deposit rate", f"{r1(A[('A', lab, 'rate')])}% / "
+            f"{r1(A[('A', lab, 'nd_rate')])}%", f"{r1(B[('A', lab, 'rate')])}% / {r1(B[('A', lab, 'nd_rate')])}%",
+            f"{r1(row[1])}% / {r1(row[2])}%", f"{G_ALL[lab][2]}% / {G_ND[lab][2]}%", ok)
+        rec("Table D (chart data)", f"{lab}: 'Check: equals Table A?' cell", "", "", row[3], True, row[3] is True)
+    want_hdr = ["Category label (axis)", "Cancellation rate, all bookings", "Cancellation rate, no-deposit bookings",
+                "Check: equals Table A?"]
+    rec("Table D (chart data)", "headers (B50 and C50 are the legend entries)", "", "", " | ".join(Cv["D_hdr"]),
+        " | ".join(want_hdr), Cv["D_hdr"] == want_hdr)
+    want_dnote = ("Each bar is the share of bookings in that band that were cancelled (is_canceled = Yes, including "
+                  "no-shows). Labels show each band's bookings and cancellations. Source: Table A above.")
+    rec("Table D (chart data)", "A57 note", "", "", Cv["D_note"], want_dnote, Cv["D_note"] == want_dnote)
     for num, lab, left, right, res_ in Cv["checks"]:
         rec("Checks sheet", f"#{num} {lab}", "", "", f"{fmt(left)} vs {fmt(right)} → {res_}", "TRUE", res_ is True)
     rec("Checks sheet", "Overall banner", "", "", Cv["banner"], "ALL CHECKS PASS", Cv["banner"] == "ALL CHECKS PASS")
     for lab, live, exp, match in Cv["rf"]:
         rec("Report_Figures", lab, "", "", f"{fmt(live)} → {match}", fmt(exp), match == OK)
-    want_note = ("Note: No-deposit online travel agent bookings over 365 days (n = 16) are not plotted (fewer than 30 "
-                 "bookings). Over 365 days, 59.2% of bookings are non-refundable.")
+    want_cap = "Figure 2: Cancellation rate by booking lead time, all bookings and no-deposit bookings"
+    rec("Figure 2 text", "Caption (A1)", "", "", Cv["fig_caption"], want_cap, Cv["fig_caption"] == want_cap)
+    want_note = ("Note: Each bar is the share of bookings in that lead-time band that were cancelled, including "
+                 "no-shows. Labels under each band give its bookings and cancellations. Beyond 365 days, 59.2% of "
+                 "bookings are non-refundable, so most of that band sits outside the no-deposit bar.")
     want_src = "Source: Group analysis of the supplied hotel bookings dataset (n = 119,390)."
     rec("Figure 2 text", "Note line (live formula)", "", "", Cv["fig_note"], want_note, Cv["fig_note"] == want_note)
     rec("Figure 2 text", "Source line (live formula)", "", "", Cv["fig_source"], want_src, Cv["fig_source"] == want_src)
+    pa = str(Cv["fig_print_area"])
+    rec("Figure 2 text", "Print area", "", "", pa, "A1:J27", pa.replace("$", "").endswith("A1:J27"))
 
     # Table 1 presentation text vs the report text (docx), hyphen/quote-normalised
     report_t1 = [
@@ -730,63 +752,105 @@ def stage_check(src, built, recalc, report):
         wbf["Raw_Data"].protection.sheet and not wbf["Raw_Data"].protection.password)
     wbf.close()
 
-    # chart XML
+    # chart XML (tag matching ignores namespace prefixes: openpyxl writes no "c:" prefix)
     z = zipfile.ZipFile(built)
-    charts = [n for n in z.namelist() if n.startswith("xl/charts/chart")]
-    xml = re.sub(r"<(/?)c:", r"<\1", z.read(charts[0]).decode("utf8"))  # prefix-agnostic
+    charts = sorted(n for n in z.namelist() if re.match(r"xl/charts/chart\d+\.xml$", n))
+    rec("Chart XML (Figure 2)", "exactly one chart in the workbook", "", "", ", ".join(charts), 1, len(charts) == 1)
+    xml = re.sub(r"<(/?)[a-zA-Z0-9]+:", r"<\1", z.read(charts[0]).decode("utf8"))  # drop every prefix
     xml = re.sub(r' xmlns(:\w+)?="[^"]*"', "", xml)
+
+    def block(tag):
+        m = re.search(rf"<{tag}>(.*?)</{tag}>", xml, flags=re.S)
+        return m.group(1) if m else ""
+    val_ax, cat_ax, legend = block("valAx"), block("catAx"), block("legend")
     sers = re.findall(r"<ser>(.*?)</ser>", xml, flags=re.S)
     chart_lines = []
-    for s in sers:
-        tx = re.search(r"<tx><strRef><f>(.*?)</f>", s).group(1)
-        cat = re.search(r"<cat>.*?<f>(.*?)</f>", s, flags=re.S).group(1)
-        val = re.search(r"<val>.*?<f>(.*?)</f>", s, flags=re.S).group(1)
-        colour = re.search(r'<spPr><a:ln w="(\d+)"[^>]*><a:solidFill><a:srgbClr val="(\w+)"', s)
-        dash = re.search(r'<a:prstDash val="(\w+)"', s).group(1)
-        sym = re.search(r'<symbol val="(\w+)"/><size val="(\d+)"', s)
-        dl = re.findall(r"<dLbl><idx val=\"(\d+)\"", s)
-        pos = re.findall(r'<dLblPos val="(\w+)"', s)
-        chart_lines.append((tx, cat, val, colour.group(2), int(colour.group(1)) / 12700, dash, sym.group(1),
-                            sym.group(2), dl, pos))
-    want_chart = [("'Q2_Summary'!$B$50", "0072B2", 2.5, "solid", "circle", "7", ["1", "2"], ["t", "t", "t"]),
-                  ("'Q2_Summary'!$C$50", "009E73", 2.25, "solid", "square", "6", [], ["b"]),
-                  ("'Q2_Summary'!$D$50", "E69F00", 2.0, "dash", "triangle", "6", ["0", "4"], ["l", "r"])]
-    for got, want in zip(chart_lines, want_chart):
-        ok = (got[0] == want[0] and got[1] == "'Q2_Summary'!$A$51:$A$56" and
-              got[2] == want[0].replace("$50", "$51:$" + want[0][-4] + "$56") and got[3] == want[1] and
-              got[4] == want[2] and got[5] == want[3] and got[6] == want[4] and got[7] == want[5] and
-              got[8] == want[6] and got[9] == want[7])
-        rec("Chart XML (Figure 2)", f"series {got[0]}", "", "",
-            f"cat={got[1]} val={got[2]} colour=#{got[3]} {got[4]}pt {got[5]} {got[6]} {got[7]} dLbl idx={got[8]} "
-            f"pos={got[9]}", "", ok)
-    misc = {
-        "y axis 0–80%, major 10%": all(x in xml for x in ('<max val="0.8"', '<min val="0"', '<majorUnit val="0.1"')),
-        "y axis format 0%": 'formatCode="0%"' in xml,
-        "gridlines #D9D9D9, no minor": "D9D9D9" in xml and "minorGridlines" not in xml,
-        "blanks/#N/A as gaps": '<dispBlanksAs val="gap"' in xml,
-        "legend at bottom": '<legendPos val="b"' in xml,
-        "no chart title (autoTitleDeleted)": "<autoTitleDeleted val=\"1\"" in xml and "<chart><title>" not in xml,
-        "axis titles": "Booking lead time (days before arrival)" in xml and "Cancellation rate" in xml,
-        "label format 0.0%": xml.count('formatCode="0.0%" sourceLinked="0"') == 6,
-        "Calibri text": 'typeface="Calibri"' in xml,
-        "no chart border": '<spPr><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill><a:ln><a:noFill/>' in xml,
+    for sr in sers:
+        tx = re.search(r"<tx><strRef><f>(.*?)</f>", sr)
+        cat = re.search(r"<cat><strRef><f>(.*?)</f>", sr)
+        val = re.search(r"<val><numRef><f>(.*?)</f>", sr)
+        fill = re.search(r'<spPr><solidFill><srgbClr val="(\w+)"/></solidFill><ln><noFill/>', sr)
+        dl = re.search(r"<dLbls>(.*?)</dLbls>", sr, flags=re.S)
+        dl = dl.group(1) if dl else ""
+        chart_lines.append(dict(
+            tx=tx.group(1) if tx else None, cat=cat.group(1) if cat else None, val=val.group(1) if val else None,
+            fill=fill.group(1) if fill else None,
+            pos=re.findall(r'<dLblPos val="(\w+)"', dl), fmt=re.findall(r'<numFmt formatCode="([^"]+)"', dl),
+            show={k: re.search(rf'<{k} val="(\d)"', dl).group(1) if re.search(rf'<{k} val="(\d)"', dl) else None
+                  for k in ("showVal", "showSerName", "showCatName", "showLegendKey", "showPercent")},
+            font=re.search(r'<defRPr sz="(\d+)" b="(\d)"><solidFill><srgbClr val="(\w+)"', dl)))
+    want_series = [("'Q2_Summary'!$B$50", "'Q2_Summary'!$B$51:$B$56", "0072B2"),
+                   ("'Q2_Summary'!$C$50", "'Q2_Summary'!$C$51:$C$56", "009E73")]
+    rec("Chart XML (Figure 2)", "exactly two series", "", "", len(chart_lines), 2, len(chart_lines) == 2)
+    for g, (tx, val, colour) in zip(chart_lines, want_series):
+        font_ok = g["font"] is not None and g["font"].groups() == ("800", "1", colour)
+        ok = (g["tx"] == tx and g["val"] == val and g["cat"] == "'Q2_Summary'!$A$51:$A$56" and g["fill"] == colour
+              and g["pos"] == ["outEnd"] and g["fmt"] == ["0.0%"] and font_ok
+              and g["show"] == {"showVal": "1", "showSerName": "0", "showCatName": "0", "showLegendKey": "0",
+                                "showPercent": "0"})
+        rec("Chart XML (Figure 2)", f"series {tx}", "", "",
+            f"val={g['val']} cat={g['cat']} fill=#{g['fill']} no outline; labels {g['pos']} {g['fmt']} "
+            f"{'8 pt bold #' + colour if font_ok else 'font mismatch'}; value only={g['show']['showVal'] == '1'}",
+            f"{val}, #{colour}, outEnd 0.0%, 8 pt bold", ok)
+    asserts = {
+        "barChart with barDir col": "<barChart>" in xml and '<barDir val="col"/>' in xml,
+        "grouping clustered": '<grouping val="clustered"/>' in xml,
+        "gapWidth 40": '<gapWidth val="40"/>' in xml,
+        "overlap -12": '<overlap val="-12"/>' in xml,
+        "no lineChart element": "<lineChart" not in xml,
+        "no other chart types in the plot area": not re.search(
+            r"<(area|pie|doughnut|scatter|radar|bubble|stock|surface|bar3D|line3D)Chart", xml),
+        "no majorGridlines element": "majorGridlines" not in xml,
+        "value axis deleted (hidden)": '<delete val="1"/>' in val_ax,
+        "value axis min 0, max 0.8": '<min val="0"/>' in val_ax and '<max val="0.8"/>' in val_ax,
+        "value axis major unit 0.2, format 0%": '<majorUnit val="0.2"/>' in val_ax and 'formatCode="0%"' in val_ax,
+        "category axis shown (delete 0)": '<delete val="0"/>' in cat_ax,
+        "category axis tickLblSkip 1, tickMarkSkip 1": '<tickLblSkip val="1"/>' in cat_ax
+                                                         and '<tickMarkSkip val="1"/>' in cat_ax,
+        "category labels rot 0": '<txPr><bodyPr rot="0"' in cat_ax,
+        "category labels Calibri 8 pt #595959": re.search(r'<txPr><bodyPr rot="0"[^>]*/><p><pPr><defRPr sz="800" '
+                                                          r'b="0"><solidFill><srgbClr val="595959"', cat_ax) is not None,
+        "category axis line #BFBFBF 0.75 pt": '<ln w="9525"><solidFill><srgbClr val="BFBFBF"/>' in cat_ax,
+        "axis title 'Booking lead time (days before arrival)'":
+            "<t>Booking lead time (days before arrival)</t>" in cat_ax,
+        "legend at top (legendPos t)": '<legendPos val="t"/>' in legend,
+        "legend Calibri 9 pt #404040": re.search(r'<defRPr sz="900" b="0"><solidFill><srgbClr val="404040"',
+                                                 legend) is not None,
+        "no chart title (autoTitleDeleted 1)": '<autoTitleDeleted val="1"/>' in xml and "<chart><title>" not in xml,
+        "chart area white, no border": "<spPr><solidFill><srgbClr val=\"FFFFFF\"/></solidFill><ln><noFill/>" in xml,
         "no 3-D": "3D" not in xml,
-        "label nudges (all bookings 8–30, 31–90)": xml.count("<manualLayout><x val=\"-0.034\"/>") == 2,
+        "Calibri throughout": 'typeface="Calibri"' in xml and "typeface=" not in xml.replace('typeface="Calibri"', ""),
     }
-    for k, v in misc.items():
+    for k, v in asserts.items():
         rec("Chart XML (Figure 2)", k, "", "", v, True, v)
     drawing = [n for n in z.namelist() if n.startswith("xl/drawings/drawing")]
-    dx = re.sub(r"<(/?)xdr:", r"<\1", z.read(drawing[0]).decode("utf8"))
+    dx = re.sub(r"<(/?)[a-zA-Z0-9]+:", r"<\1", z.read(drawing[0]).decode("utf8"))
     ext = re.search(r'<ext cx="(\d+)" cy="(\d+)"', dx)
     w_cm, h_cm = int(ext.group(1)) / 360000, int(ext.group(2)) / 360000
-    rec("Chart XML (Figure 2)", "size (cm)", "", "", f"{w_cm:.1f} × {h_cm:.1f}", "17 × 10", (w_cm, h_cm) == (17, 10))
+    rec("Chart XML (Figure 2)", "size (cm)", "", "", f"{w_cm:.2f} × {h_cm:.2f}", "15.9 × 9.5",
+        abs(w_cm - 15.9) < 0.01 and abs(h_cm - 9.5) < 0.01)
+    frm = re.search(r"<from><col>(\d+)</col><colOff>\d+</colOff><row>(\d+)</row>", dx)
+    rec("Chart XML (Figure 2)", "anchor", "", "", f"col {frm.group(1)}, row {frm.group(2)} (0-based)", "Figure2!A4",
+        frm.groups() == ("0", "3"))
+    wbx = z.read("xl/workbook.xml").decode("utf8")
+    fig_sheet_idx = re.findall(r'<sheet [^>]*name="([^"]+)"', re.sub(r"<(/?)[a-zA-Z0-9]+:", r"<\1", wbx)).index("Figure2")
+    rels = z.read(f"xl/worksheets/_rels/sheet{fig_sheet_idx + 1}.xml.rels").decode("utf8")
+    rec("Chart XML (Figure 2)", "chart sits on the Figure2 sheet", "", "", "drawing rel present", True,
+        "drawing" in rels)
+    chart_assert_list = [(k, v) for k, v in asserts.items()]
+
+    rc_text = open(os.path.join(os.path.dirname(recalc), "recalc_time.txt")).read()
+    rc_json = json.loads(rc_text[rc_text.index("{"):rc_text.rindex("}") + 1])
+    rec("Structure", "LibreOffice recalculation: formula error values", "", "",
+        f"{rc_json.get('total_errors')} errors in {rc_json.get('total_formulas'):,} formulas", 0,
+        rc_json.get("status") == "success" and rc_json.get("total_errors") == 0)
 
     size_mb = os.path.getsize(built) / 1e6
     recalc_time = open(os.path.join(os.path.dirname(recalc), "recalc_time.txt")).read().split("\n")[0]
 
     # ---- write report
     n_fail = sum(1 for r in results if r[-1] == "FAIL")
-    out = ["# Verification report: BUSM1042_A3_Q2_LeadTime.xlsx", "",
+    out = [f"# Verification report v3: {os.path.basename(built)}", "",
            f"Generated by `verify.py` on {datetime.now():%d %B %Y %H:%M}.", "",
            f"**Overall: {'ALL PASS' if n_fail == 0 else f'{n_fail} FAIL'}** "
            f"({len(results) - n_fail} of {len(results)} checks passed).", "",
@@ -801,13 +865,33 @@ def stage_check(src, built, recalc, report):
            f"- LibreOffice recalculation (headless, includes load, full recalculation, save and an error scan): "
            f"{recalc_time} s",
            f"- Verification run time: {time.time() - t_start:.0f} s", ""]
-    out += ["## Chart series references (parsed from xl/charts XML)", "",
-            "| Series name ref | Categories | Values | Colour | Width | Dash | Marker | Labelled points | Label position |",
-            "|---|---|---|---|---|---|---|---|---|"]
+    out += ["## Change log, v1 to v3", "",
+            "- **Figure 2 redesigned** as a native clustered column chart (openpyxl BarChart, built with "
+            "`build_figure2()` from `figure2_final_reference.py`): two series (all bookings #0072B2, no-deposit "
+            "bookings #009E73), 0.0% value labels on all 12 bars, value axis hidden on a fixed 0–80% scale, "
+            "legend at the top, 15.9 × 9.5 cm. The v1 line chart, its online TA series and the label nudges are gone.",
+            "- **Table D (Q2_Summary rows 49–57) rebuilt**: three-line category labels (band / bookings / "
+            "cancelled; Over 365 adds the non-refundable share), the two rate series and a 'Check: equals Table "
+            "A?' column. Table A keeps its online TA columns, which the report text cites.",
+            "- **Figure2 sheet text**: new caption, note and source lines (number-bearing text is formulas); print "
+            "area A1:J27, A4 portrait, fit to one page.",
+            "- **Checks**: the two online TA chart checks were replaced by six figure checks (Table D equals "
+            "Table A, every label shows bookings and cancellations, the Over 365 label shows the non-refundable "
+            "share, every value fits the 80% scale, cancel_flag has no errors).",
+            "- **README**: Figure 2 sheet-map line, suppression rule, style guide (legend top, chart type, labels "
+            "instead of axis, context in labels), a Figure 2 design section, version and open-and-save lines.",
+            "- **Unchanged from v1 (as requested)**: Raw_Data, Clean_Data, Table1_DataQuality, Tables A–C, "
+            "Report_Figures and every formula outside Table D.", "",
+            "## Chart series references (parsed from xl/charts XML)", "",
+            "| Series name ref | Values | Categories | Fill | Data labels |",
+            "|---|---|---|---|---|"]
     for g in chart_lines:
-        out.append(f"| `{g[0]}` | `{g[1]}` | `{g[2]}` | #{g[3]} | {g[4]} pt | {g[5]} | {g[6]} {g[7]} | "
-                   f"{'all' if not g[8] else ', '.join(g[8])} | {', '.join(g[9])} |")
-    out.append("")
+        out.append(f"| `{g['tx']}` | `{g['val']}` | `{g['cat']}` | #{g['fill']} | {', '.join(g['pos'])}, "
+                   f"{', '.join(g['fmt'])} |")
+    out += ["", "## Chart XML assertion list", ""]
+    out += [f"- {'PASS' if v else 'FAIL'}: {k}" for k, v in chart_assert_list]
+    out += ["", f"Rendered preview: `Figure2_v3_preview.png` (LibreOffice, 220 dpi; checking only, not for the report).",
+            ""]
     section = None
     for sec, name, a, b, c, exp, st in results:
         if sec != section:
@@ -821,9 +905,6 @@ def stage_check(src, built, recalc, report):
             "and `NA` (children 4). pandas reads these as NaN. As the brief requires, Raw_Data and Clean_Data hold "
             "them as empty cells (129,425 cells). This is the only difference from the source; every other cell "
             "matches exactly (see Structure).",
-            "- The Figure 2 note says \"No-deposit online travel agent bookings over 365 days (n = 16)\" rather than "
-            "\"Online travel agent bookings …\", because the 16 bookings are the no-deposit Online TA series (all "
-            "Online TA bookings over 365 days number more). This matches the report's own note.",
             "- No-deposit Online TA total cancelled = 20,668, confirmed by all three methods.",
             "- Rates are shown as the 1-dp half-up value with the exact per-cent value in brackets. Golden values "
             "are given to 2 dp, so a rate passes when the three methods agree at 1 dp and sit within ±0.005 "
@@ -834,16 +915,12 @@ def stage_check(src, built, recalc, report):
             "(no overlap), confirmed by all three methods.",
             "- Table 1 text cells reproduce the report wording with live numbers; the only character difference is "
             "a hyphen-minus in \"-6.38\" where the report uses the typographic minus sign (−).",
-            "- Label positions: all-bookings labels at 8–30 and 31–90 sit slightly up and to the left (per-point "
-            "manual offsets) so they clear the dashed online TA line, and the online TA 0–7 label sits on the LEFT "
-            "(not right as briefed), because labels on the right crossed the rising lines. No label overlaps another.",
-            "- Visual QA previews were rendered by LibreOffice, whose chart layout differs slightly from Excel's. "
-            "For the Figure 2 preview only, a throwaway copy blanks the #N/A cell and restores dispBlanksAs=gap, "
-            "because LibreOffice draws a cached #N/A as 0% and its own re-save switches gaps to zero; the delivered "
-            "workbook keeps NA() and gap, which Excel draws as a gap.",
-            "- The recalculation time above includes openpyxl's scan of all 1.19 million formulas for errors; "
-            "LibreOffice itself loaded, recalculated and saved the workbook in about 75 s. The only error value is "
-            "the intended #N/A at Q2_Summary!D56 (suppressed online TA point).",
+            "- Visual QA previews were rendered by LibreOffice (Carlito, metric-compatible with Calibri), whose "
+            "chart layout differs slightly from Excel's.",
+            "- The recalculation time above includes openpyxl's scan of all formulas for error values; LibreOffice "
+            "itself loads, recalculates and saves the workbook in about 75 s.",
+            "- Method C uses the xlsx skill's recalc.py (LibreOffice headless, an explicit calculateAll() and save), "
+            "which is stricter than a plain --convert-to xlsx because it forces every formula to recalculate.",
             ""]
     with open(report, "w") as fh:
         fh.write("\n".join(out))
@@ -903,17 +980,17 @@ def stage_render(recalc, out_dir):
     subprocess.run(["soffice", "--headless", "--convert-to", "pdf", "--outdir", work, copy], check=True,
                    capture_output=True, timeout=3600)
     fpdf = os.path.splitext(copy)[0] + ".pdf"
-    subprocess.run(["pdftoppm", "-png", "-r", "150", "-f", str(found["Figure2"]), "-l", str(found["Figure2"]),
-                    "-singlefile", fpdf, os.path.join(out_dir, "Figure2_preview")], check=True)
+    subprocess.run(["pdftoppm", "-png", "-r", "220", "-f", str(found["Figure2"]), "-l", str(found["Figure2"]),
+                    "-singlefile", fpdf, os.path.join(out_dir, "Figure2_v3_preview")], check=True)
     subprocess.run(["pdfseparate", "-f", str(q[0]), "-l", str(q[-1]), pdf, os.path.join(work, "q2_%d.pdf")],
                    check=True)
     parts = [os.path.join(work, f"q2_{i}.pdf") for i in range(q[0], q[-1] + 1)]
     if len(parts) == 1:
-        shutil.copy(parts[0], os.path.join(out_dir, "Q2_Summary_preview.pdf"))
+        shutil.copy(parts[0], os.path.join(out_dir, "Q2_Summary_v3_preview.pdf"))
     else:
-        subprocess.run(["pdfunite", *parts, os.path.join(out_dir, "Q2_Summary_preview.pdf")], check=True)
+        subprocess.run(["pdfunite", *parts, os.path.join(out_dir, "Q2_Summary_v3_preview.pdf")], check=True)
     subprocess.run(["pdftoppm", "-png", "-r", "110", "-f", "1", "-l", "1", "-singlefile",
-                    os.path.join(out_dir, "Q2_Summary_preview.pdf"), os.path.join(work, "Q2_Summary_page1")],
+                    os.path.join(out_dir, "Q2_Summary_v3_preview.pdf"), os.path.join(work, "Q2_Summary_page1")],
                    check=True)
 
 

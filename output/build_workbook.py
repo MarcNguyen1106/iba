@@ -12,11 +12,9 @@ from datetime import datetime
 
 import pandas as pd
 from openpyxl import Workbook, load_workbook
-from openpyxl.chart import LineChart, Reference, Series
-from openpyxl.chart.axis import ChartLines
+from openpyxl.chart import BarChart, Reference, Series
 from openpyxl.chart.data_source import AxDataSource, StrRef
-from openpyxl.chart.label import DataLabel, DataLabelList
-from openpyxl.chart.marker import Marker
+from openpyxl.chart.label import DataLabelList
 from openpyxl.chart.series import SeriesLabel
 from openpyxl.chart.shapes import GraphicalProperties
 from openpyxl.chart.text import RichText, Text
@@ -35,7 +33,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 
 SRC, OUT = sys.argv[1], sys.argv[2]
 VALUES_FALLBACK = "--values-fallback" in sys.argv
-BUILD_DATE = "22 October 2026"
+BUILD_DATE = "23 October 2026"
 N = 119390
 LAST = N + 1  # last data row on Raw_Data / Clean_Data
 
@@ -474,19 +472,22 @@ ttitle(q, f"A{TD_T}", "Table D: Chart data (feeds Figure 2)")
 rowsD = []
 for i in range(len(BANDS)):
     r, ra = d0 + i, TA0 + i
-    rowsD.append([f'=A{ra}&CHAR(10)&"n = "&TEXT(D{ra},"#,##0")', f"=F{ra}", f"=I{ra}",
-                  f"=IF(J{ra}<30,NA(),L{ra})", f"=J{ra}", f'=IF(J{ra}<30,"No (n < 30)","Yes")'])
+    label = (f'=A{ra}&CHAR(10)&TEXT(D{ra},"#,##0")&" bookings"&CHAR(10)&TEXT(E{ra},"#,##0")&" cancelled"')
+    if i == len(BANDS) - 1:  # Over 365: add the non-refundable share that explains the no-deposit drop
+        label += f'&CHAR(10)&TEXT(N{ra},"0%")&" non-refundable"'
+    rowsD.append([label, f"=F{ra}", f"=I{ra}", f"=AND(B{r}=F{ra},C{r}=I{ra})"])
 TD_END = d0 + len(BANDS) - 1
-SER_NAMES = ["All bookings", "No-deposit bookings", "No-deposit online travel agent bookings"]
-table_block(q, TD_H, 1, ["Category label (axis)"] + SER_NAMES +
-            ["No-deposit online TA bookings (n)", "Online TA point plotted?"],
-            rowsD, ["@", FMT_P, FMT_P, FMT_P, FMT_N, "@"], hdr_height=64)
-for r in range(d0, TD_END + 1):
+SER_NAMES = ["Cancellation rate, all bookings", "Cancellation rate, no-deposit bookings"]  # = legend entries
+table_block(q, TD_H, 1, ["Category label (axis)"] + SER_NAMES + ["Check: equals Table A?"],
+            rowsD, ["@", FMT_P, FMT_P, None], hdr_height=48)
+for i, r in enumerate(range(d0, TD_END + 1)):
     q[f"A{r}"].alignment = Alignment(wrap_text=True, vertical="center")
-    q.row_dimensions[r].height = 30
-    q[f"F{r}"].alignment = A_CTR
-note(q, f"A{TD_END + 1}", "The online TA series uses NA(), which Excel draws as a gap, where fewer than 30 no-deposit "
-                          "online TA bookings support the rate (suppression rule). Source: Table A above.")
+    q.row_dimensions[r].height = 62 if i == len(BANDS) - 1 else 47
+    q[f"D{r}"].alignment = A_CTR
+bool_rules(q, f"D{d0}:D{TD_END}")
+note(q, f"A{TD_END + 1}", "Each bar is the share of bookings in that band that were cancelled (is_canceled = Yes, "
+                          "including no-shows). Labels show each band's bookings and cancellations. "
+                          "Source: Table A above.")
 presentation(q, "70AD47", area=f"A1:P{TD_END + 1}")
 q.row_breaks.append(Break(id=TC_T - 1))  # Table C starts a new printed page
 q.freeze_panes = "B4"
@@ -651,12 +652,14 @@ presentation(t, "70AD47", area=f"A1:F{P_END + 2}")
 t.row_breaks.append(Break(id=P_T - 1))  # the copy-ready table starts a new printed page
 t.freeze_panes = "A4"
 
-# ---------------------------------------------------------------- 6. Figure2 (native line chart)
+# ---------------------------------------------------------------- 6. Figure2 (native clustered column chart)
 f = ws_f
-put(f, "A1", "Figure 2: Cancellation rate by booking lead time: all bookings, no-deposit bookings and no-deposit "
-             "online travel agent bookings", font=Font(name=FONT, size=11, bold=True))
-put(f, "A2", "(Caption for reference only: in Word, put the caption above the pasted chart and the note and source "
-             "lines below it.)", font=F_NOTE)
+put(f, "A1", "Figure 2: Cancellation rate by booking lead time, all bookings and no-deposit bookings",
+    font=Font(name=FONT, size=12, bold=True))
+put(f, "A2", "(For Word: the caption goes above the pasted chart; the note and source go below it.)",
+    font=Font(name=FONT, size=10, italic=True, color="595959"))
+
+BLUE, GREEN, AXIS_TXT, AXIS_LINE = "0072B2", "009E73", "595959", "BFBFBF"
 
 
 def cp(size=900, color="404040", bold=False):
@@ -670,16 +673,15 @@ def rich(size=900, color="404040", bold=False, rot=None):
                                  endParaRPr=cp(size, color, bold))])
 
 
-def axis_title(text, rot=None):
-    body = RichTextProperties(rot=rot, vert="horz") if rot is not None else RichTextProperties()
-    para = Paragraph(pPr=ParagraphProperties(defRPr=cp(1000, "404040", False)),
-                     r=[RegularTextRun(rPr=cp(1000, "404040", False), t=text)])
-    return Title(tx=Text(rich=RichText(bodyPr=body, p=[para])), overlay=False)
+def axis_title(text, size=1000, color="262626", bold=True):
+    para = Paragraph(pPr=ParagraphProperties(defRPr=cp(size, color, bold)),
+                     r=[RegularTextRun(rPr=cp(size, color, bold), t=text)])
+    return Title(tx=Text(rich=RichText(bodyPr=RichTextProperties(), p=[para])), overlay=False)
 
 
 def figure2_write(chart):
-    """Serialise like LineChart, then add chart-wide Calibri text, autoTitleDeleted and sourceLinked=0 formats."""
-    tree = LineChart._write(chart)  # tags are bare here; openpyxl adds the chart namespace when serialising
+    """Serialise like BarChart, then add chart-wide Calibri text, autoTitleDeleted and sourceLinked=0 formats."""
+    tree = BarChart._write(chart)  # tags are bare here; openpyxl adds the chart namespace when serialising
     from openpyxl.xml.functions import Element
     tree.find("chart").insert(0, Element("autoTitleDeleted", val="1"))
     txpr = rich(900).to_tree(tagname="txPr")
@@ -688,107 +690,78 @@ def figure2_write(chart):
     tree.insert(sppr_pos[0] + 1 if sppr_pos else len(children), txpr)
     for nf in tree.iter("numFmt"):
         nf.set("sourceLinked", "0")
-    # nudge individual labels (offsets are fractions of the chart size from the label's default position)
-    from openpyxl.xml.functions import SubElement
-    for ser in tree.iter("ser"):
-        offsets = LABEL_OFFSETS.get(int(ser.find("idx").get("val")), {})
-        dlbls = ser.find("dLbls")
-        for dlbl in (dlbls.findall("dLbl") if dlbls is not None else []):
-            point = int(dlbl.find("idx").get("val"))
-            if point in offsets:
-                layout = Element("layout")
-                manual = SubElement(layout, "manualLayout")
-                SubElement(manual, "x", val=str(offsets[point][0]))
-                SubElement(manual, "y", val=str(offsets[point][1]))
-                dlbl.insert(1, layout)
     return tree
 
 
-# ---- FIGURE2 CHART START
-ch = LineChart()
-ch._write = lambda: figure2_write(ch)
-ch.grouping = "standard"
-ch.varyColors = False
-ch.marker = True
-ch.title = None
-ch.width, ch.height = 17, 10
-ch.display_blanks = "gap"
-ch.roundedCorners = False
-ch.graphical_properties = GraphicalProperties(solidFill="FFFFFF", ln=LineProperties(noFill=True))
-ch.plot_area.graphicalProperties = GraphicalProperties(noFill=True, ln=LineProperties(noFill=True))
+def build_figure2(data_ws, header_row, first_row, last_row, cat_col, all_col, nd_col, target_ws, anchor):
+    """Figure 2 as in figure2_final_reference.py: two clustered columns, value labels, hidden 0-80% value axis."""
+    ch = BarChart()
+    ch._write = lambda: figure2_write(ch)
+    ch.type = "col"
+    ch.grouping = "clustered"
+    ch.varyColors = False
+    sheet = f"'{data_ws.title}'"
+    cat_ref = f"{sheet}!${get_column_letter(cat_col)}${first_row}:${get_column_letter(cat_col)}${last_row}"
+    for col_idx, colour in ((all_col, BLUE), (nd_col, GREEN)):
+        col = get_column_letter(col_idx)
+        s = Series(Reference(data_ws, min_col=col_idx, min_row=first_row, max_row=last_row), title=None)
+        s.tx = SeriesLabel(strRef=StrRef(f"{sheet}!${col}${header_row}"))  # legend text = header cell
+        s.cat = AxDataSource(strRef=StrRef(cat_ref))                       # text categories (multi-line labels)
+        s.graphicalProperties = GraphicalProperties(solidFill=colour, ln=LineProperties(noFill=True))
+        s.dLbls = DataLabelList(numFmt="0.0%", dLblPos="outEnd", showVal=True, showSerName=False,
+                                showCatName=False, showLegendKey=False, showPercent=False, showBubbleSize=False,
+                                txPr=rich(800, colour, True))
+        ch.series.append(s)
+    ch.gapWidth = 40
+    ch.overlap = -12
+    # value axis: fixed 0-80% scale (honest zero baseline), hidden because every bar carries its own label
+    ch.y_axis.scaling.min = 0
+    ch.y_axis.scaling.max = 0.8
+    ch.y_axis.majorUnit = 0.2
+    ch.y_axis.number_format = "0%"
+    ch.y_axis.majorGridlines = None
+    ch.y_axis.minorGridlines = None
+    ch.y_axis.delete = True
+    # category axis: band / bookings / cancelled (Over 365 adds the non-refundable share)
+    ch.x_axis.title = axis_title("Booking lead time (days before arrival)")
+    ch.x_axis.txPr = rich(800, AXIS_TXT, rot=0)  # rot=0 stops Excel tilting the labels
+    ch.x_axis.spPr = GraphicalProperties(ln=LineProperties(solidFill=AXIS_LINE, w=9525))
+    ch.x_axis.delete = False
+    ch.x_axis.majorTickMark = "none"
+    ch.x_axis.tickLblSkip = 1  # never skip alternate labels
+    ch.x_axis.tickMarkSkip = 1
+    ch.legend.position = "t"
+    ch.legend.overlay = False
+    ch.legend.txPr = rich(900, "404040")
+    ch.title = None
+    ch.roundedCorners = False
+    ch.graphical_properties = GraphicalProperties(solidFill="FFFFFF", ln=LineProperties(noFill=True))
+    ch.plot_area.graphicalProperties = GraphicalProperties(noFill=True, ln=LineProperties(noFill=True))
+    ch.width, ch.height = 15.9, 9.5  # A4 text width at 2.54 cm margins, so it pastes into Word at 100%
+    target_ws.add_chart(ch, anchor)
+    return ch
 
-COLOURS = ["0072B2", "009E73", "E69F00"]
-LABEL_OFFSETS = {0: {1: (-0.034, -0.017), 2: (-0.034, -0.008)}}  # series index -> point index -> (dx, dy)
-WIDTHS = [2.5, 2.25, 2.0]
-SYMBOLS = [("circle", 7), ("square", 6), ("triangle", 6)]
-cat_ref = f"'Q2_Summary'!$A${d0}:$A${TD_END}"
-for k in range(3):
-    col = get_column_letter(2 + k)
-    s = Series(Reference(q, min_col=2 + k, min_row=d0, max_row=TD_END), title=None)
-    s.tx = SeriesLabel(strRef=StrRef(f"'Q2_Summary'!${col}${TD_H}"))
-    s.cat = AxDataSource(strRef=StrRef(cat_ref))
-    s.smooth = False
-    s.graphicalProperties = GraphicalProperties(ln=LineProperties(solidFill=COLOURS[k], w=int(WIDTHS[k] * 12700),
-                                                                  prstDash="dash" if k == 2 else "solid",
-                                                                  cap="rnd"))
-    sym, size = SYMBOLS[k]
-    s.marker = Marker(symbol=sym, size=size,
-                      spPr=GraphicalProperties(solidFill=COLOURS[k], ln=LineProperties(solidFill=COLOURS[k], w=9525)))
-    common = dict(numFmt="0.0%", txPr=rich(900, COLOURS[k], True), showLegendKey=False, showCatName=False,
-                  showSerName=False, showPercent=False, showBubbleSize=False)
-    if k == 0:
-        # 8–30 and 31–90 labels sit up and to the left so they clear the dashed online TA line
-        pts = [DataLabel(idx=i, dLblPos="t", showVal=True, **common) for i in LABEL_OFFSETS[0]]
-        s.dLbls = DataLabelList(dLbl=pts, dLblPos="t", showVal=True, showLeaderLines=False, **common)
-    elif k == 1:
-        s.dLbls = DataLabelList(dLblPos="b", showVal=True, **common)
-    else:
-        # 0–7 label on the left, where the plot is empty; 181–365 label on the right
-        pts = [DataLabel(idx=i, dLblPos=pos, showVal=True, **common) for i, pos in ((0, "l"), (4, "r"))]
-        s.dLbls = DataLabelList(dLbl=pts, showVal=False, showLegendKey=False, showCatName=False,
-                                showSerName=False, showPercent=False, showBubbleSize=False)
-    ch.series.append(s)
 
-ch.x_axis.title = axis_title("Booking lead time (days before arrival)")
-ch.x_axis.delete = False
-ch.x_axis.axPos = "b"
-ch.x_axis.txPr = rich(900, "404040")
-ch.x_axis.majorTickMark = "out"
-ch.x_axis.tickLblPos = "low"
-ch.x_axis.spPr = GraphicalProperties(ln=LineProperties(solidFill="A6A6A6", w=9525))
-ch.x_axis.majorGridlines = None
-ch.y_axis.title = axis_title("Cancellation rate", rot=-5400000)
-ch.y_axis.delete = False
-ch.y_axis.scaling.min = 0
-ch.y_axis.scaling.max = 0.8
-ch.y_axis.majorUnit = 0.1
-ch.y_axis.number_format = "0%"
-ch.y_axis.txPr = rich(900, "404040")
-ch.y_axis.majorTickMark = "none"
-ch.y_axis.majorGridlines = ChartLines(spPr=GraphicalProperties(ln=LineProperties(solidFill="D9D9D9", w=9525)))
-ch.y_axis.minorGridlines = None
-ch.y_axis.spPr = GraphicalProperties(ln=LineProperties(noFill=True))
-ch.legend.position = "b"
-ch.legend.overlay = False
-ch.legend.txPr = rich(900, "404040")
-f.add_chart(ch, "A4")
-# ---- FIGURE2 CHART END
+build_figure2(q, header_row=TD_H, first_row=d0, last_row=TD_END, cat_col=1, all_col=2, nd_col=3,
+              target_ws=f, anchor="A4")
 
-NOTE_ROW = 26
-f[f"A{NOTE_ROW}"].value = (f'="Note: No-deposit online travel agent bookings over 365 days (n = "&TEXT({QS}!J{TA_TOT - 1},"#,##0")'
-                           f'&") are not plotted (fewer than 30 bookings). Over 365 days, "&TEXT({QS}!N{TA_TOT - 1},"0.0%")'
-                           f'&" of bookings are non-refundable."')
-f[f"A{NOTE_ROW}"].font = F_SMALL
+NOTE_ROW = 24
+f[f"A{NOTE_ROW}"].value = (f'="Note: Each bar is the share of bookings in that lead-time band that were cancelled, '
+                           f'including no-shows. Labels under each band give its bookings and cancellations. Beyond '
+                           f'365 days, "&TEXT({QS}!N{TA_TOT - 1},"0.0%")&" of bookings are non-refundable, so most of '
+                           f'that band sits outside the no-deposit bar."')
 f[f"A{NOTE_ROW + 1}"].value = (f'="Source: Group analysis of the supplied hotel bookings dataset (n = "'
                                f'&TEXT({QS}!D{TA_TOT},"#,##0")&")."')
-f[f"A{NOTE_ROW + 1}"].font = F_SMALL
-for col in range(1, 11):  # ten columns ≈ the 17 cm chart width
-    f.column_dimensions[get_column_letter(col)].width = 9.6
-for rr, height in ((1, 30), (2, 15), (NOTE_ROW, 30), (NOTE_ROW + 1, 15)):
+for col in range(1, 11):  # ten columns ≈ the 15.9 cm chart width
+    f.column_dimensions[get_column_letter(col)].width = 8.0
+for rr, height in ((1, 32), (2, 15), (NOTE_ROW, 38), (NOTE_ROW + 1, 14)):
     f.merge_cells(f"A{rr}:J{rr}")
-    f[f"A{rr}"].alignment = Alignment(wrap_text=True, vertical="top")
+    f[f"A{rr}"].alignment = Alignment(wrap_text=True, vertical="top", horizontal="left")
     f.row_dimensions[rr].height = height
-presentation(f, "ED7D31", landscape=False, area=f"A1:J{NOTE_ROW + 1}")
+for rr in (NOTE_ROW, NOTE_ROW + 1):
+    f[f"A{rr}"].font = Font(name=FONT, size=9, color="404040")
+presentation(f, "ED7D31", landscape=False, area="A1:J27")
+f.page_setup.fitToHeight = 1  # fit to one page
 
 # ---------------------------------------------------------------- 7. Report_Figures
 rf = ws_rf
@@ -869,11 +842,19 @@ ck.append(("Table B all bookings >60 = SUM(lead_over_60)", f"={QS}!C{b1 + 2}", "
 ck.append(("Table B all >60 + ≤60 = all bookings", f"={QS}!C{b1 + 2}+{QS}!C{b1 + 3}", f"={QS}!D{TA_TOT}", "=C{r}=D{r}"))
 ck.append(("31–365 combined (C2) = Table A bands 31–90 to 181–365", f"={QS}!B{C2}", f"=SUM({QS}!D{TA0 + 2}:D{TA0 + 4})",
            "=C{r}=D{r}"))
-ck.append(("Table D series equal Table A rates (all six bands)",
-           f"=SUMPRODUCT(--({QS}!B{d0}:B{TD_END}={QS}!F{TA0}:F{TA_TOT - 1}))+"
-           f"SUMPRODUCT(--({QS}!C{d0}:C{TD_END}={QS}!I{TA0}:I{TA_TOT - 1}))", 12, "=C{r}=D{r}"))
-ck.append(("Table D online TA series: plotted points = bands with n ≥ 30",
-           f"=COUNT({QS}!D{d0}:D{TD_END})", f'=COUNTIF({QS}!J{TA0}:J{TA_TOT - 1},">=30")', "=C{r}=D{r}"))
+ck.append(("Table D series equal Table A in all six bands", f"=COUNTIF({QS}!D{d0}:D{TD_END},TRUE)", 6,
+           "=C{r}=D{r}"))
+ck.append(("Every Figure 2 axis label shows that band's bookings",
+           f'=SUMPRODUCT(--ISNUMBER(SEARCH(TEXT({QS}!D{TA0}:D{TA_TOT - 1},"#,##0")&" bookings",'
+           f"{QS}!A{d0}:A{TD_END})))", 6, "=C{r}=D{r}"))
+ck.append(("Every Figure 2 axis label shows that band's cancellations",
+           f'=SUMPRODUCT(--ISNUMBER(SEARCH(TEXT({QS}!E{TA0}:E{TA_TOT - 1},"#,##0")&" cancelled",'
+           f"{QS}!A{d0}:A{TD_END})))", 6, "=C{r}=D{r}"))
+ck.append(("Over 365 axis label shows the non-refundable share",
+           f'=ISNUMBER(SEARCH(TEXT({QS}!N{TA_TOT - 1},"0%")&" non-refundable",{QS}!A{TD_END}))', "=TRUE",
+           "=C{r}=D{r}"))
+ck.append(("Chart scale fits every value (max rate < 80%)", f"=MAX({QS}!B{d0}:C{TD_END})", 0.8, "=C{r}<D{r}"))
+ck.append(("cancel_flag has no errors (pivot-ready)", "=SUMPRODUCT(--ISERROR(rng_cancel))", 0, "=C{r}=D{r}"))
 ck.append(("Raw_Data rows = Clean_Data rows", f"=COUNTA(Raw_Data!$A$2:$A${LAST})", "=COUNTA(rng_id)", "=C{r}=D{r}"))
 ck.append(("Invalid dates flagged = text cells in Raw_Data arrival_date", "=COUNTIF(rng_valid,0)",
            f"=SUMPRODUCT(--ISTEXT({raw('arrival_date')}))", "=C{r}=D{r}"))
@@ -918,6 +899,11 @@ lines = [
     ("Calculation", "Formulas recalculate when the file opens (calculation set to automatic, full recalculation on "
                     "load). The first open can take a little while because Clean_Data holds about 1.2 million "
                     "row formulas."),
+    ("Open and save", "Open this file in desktop Excel once, wait for the calculation to finish, then Save. This "
+                      "stores the calculated values, so previews and Claude in Excel see numbers, not blanks."),
+    ("Version", "v3, 23 October 2026: Figure 2 redesigned as a clustered column chart (all bookings and no-deposit "
+                "bookings) with bookings and cancellations under each band; Table D and the figure checks rebuilt "
+                "to match. All other sheets are unchanged from v1."),
     (None, None),
     ("SHEET MAP", None),
     ("README", "This page: purpose, sheet map, cleaning rules, band definitions and the group chart style guide."),
@@ -927,7 +913,8 @@ lines = [
     ("Table1_DataQuality", "Report Table 1 rebuilt with live counts, expected values and Match? flags, then the "
                            "copy-ready version for Word."),
     ("Q2_Summary", "Tables A–D: cancellation by lead-time band, 60-day comparison, robustness checks and chart data."),
-    ("Figure2", "Native Excel line chart for report Figure 2, with caption, note and source lines."),
+    ("Figure2", "Native Excel clustered column chart for report Figure 2 (the only visual for Q2), with caption, "
+                "note and source lines."),
     ("Checks", "TRUE/FALSE self-checks with an overall ALL CHECKS PASS banner."),
     ("Report_Figures", "Every number quoted in the report text, linked to its live cell and matched to the text."),
     (None, None),
@@ -954,25 +941,43 @@ lines = [
     (None, None),
     ("LEAD-TIME BANDS", None),
     ("Bands (inclusive)", "0–7, 8–30, 31–90, 91–180, 181–365 and Over 365 (366 days or more)."),
-    ("Suppression rule", "A rate based on fewer than 30 bookings is not plotted (it shows as a gap). This removes "
-                         "no-deposit online travel agent bookings over 365 days (n = 16)."),
+    ("Suppression rule", "Rates based on fewer than 30 bookings are not plotted (group rule)."),
     ("Definitions", "No-deposit = deposit_type 'No Deposit'. Online TA = market_segment 'Online TA'."),
     (None, None),
     ("GROUP CHART STYLE GUIDE", None),
     ("Palette", "Okabe–Ito, colour-blind safe: #0072B2 blue (series 1), #009E73 green (series 2), #E69F00 orange "
                 "(series 3), then #CC79A7 pink and #56B4E9 sky blue for extra series; grey #7F7F7F for context or "
                 "benchmark lines."),
-    ("Fonts", "Calibri 9–10 pt inside charts; Calibri 11 pt body, 12 pt bold table titles, 14 pt bold sheet titles."),
+    ("Fonts", "Calibri 8–10 pt inside charts; Calibri 11 pt body, 12 pt bold table titles, 14 pt bold sheet titles."),
     ("Titles and captions", "No chart titles inside charts. The numbered caption goes above the figure in Word "
                             "(e.g. 'Figure 2: …'), and a source line goes under every figure."),
-    ("Axes", "Rate axes start at 0%. Light grey (#D9D9D9) major gridlines only; no 3-D, shadows or chart borders; "
-             "white background."),
-    ("Data labels", "One decimal place (0.0%), in the series colour; position them so that no labels overlap."),
-    ("Legend", "At the bottom, with plain-English series names."),
+    ("Chart type", "Use columns for banded categories. Lines suggest a continuous trend, and their slopes would "
+                   "mislead because the lead-time bands have unequal widths (8, 23, 60, 90 and 185 days, then "
+                   "open-ended)."),
+    ("Labels instead of axis", "When every bar carries its value label, hide the value axis and gridlines; keep the "
+                               "scale fixed at 0–80% so bar heights stay honest."),
+    ("Context in labels", "Put bookings and cancellations under each category so the chart shows volume as well as "
+                          "rate."),
+    ("Axes", "Rate axes start at 0%. Where a value axis is shown, light grey (#D9D9D9) major gridlines only; no 3-D, "
+             "shadows or chart borders; white background."),
+    ("Data labels", "One decimal place (0.0%), bold, in the series colour; no label may overlap another."),
+    ("Legend", "Top, with plain-English series names."),
     ("Tables", "Navy (#1F3A5F) header with white bold text, thin #BFBFBF borders, #F2F2F2 banding, bold total rows, "
                "a numbered title above and a source/note line below."),
     ("Into Word", "Click the chart → Copy → in Word, Paste Special → Picture (Enhanced Metafile). Add the caption "
-                  "above and the source line below."),
+                  "above and the note and source lines below."),
+    (None, None),
+    ("FIGURE 2 DESIGN", None),
+    ("Clustered columns", "Not lines: the bands have unequal widths. Bar length and position are the encodings "
+                          "readers judge most accurately (Vidgen, Kirshner & Tan 2019, p. 194)."),
+    ("Two series only", "A non-technical industry audience needs standard charts limited to the most important "
+                        "variables (Vidgen, Kirshner & Tan 2019, pp. 198–199)."),
+    ("No secondary axis", "A dual-axis combo was tested and rejected: it mixes counts and rates, and readers misread "
+                          "the line height against the bars."),
+    ("Value axis hidden", "Every bar carries a value label, so the axis adds ink but no information. The scale stays "
+                          "fixed at 0–80%, so heights remain truthful."),
+    ("Labels under the bars", "Volume and the deposit explanation are printed under the bars they describe, so no "
+                              "reader has to look away from the chart to understand the over-365 drop."),
 ]
 if VALUES_FALLBACK:
     lines.insert(4, ("Performance note", "To keep recalculation fast, repeat_flag, lead_over_60, country_clean, "
