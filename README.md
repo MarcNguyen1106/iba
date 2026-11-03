@@ -35,6 +35,15 @@ Every drawing is hand-made inline SVG, drawn by studying reference images (no im
 
 BUSM1042 Assignment 3 (group report), Q2: how booking lead time affects the likelihood of cancellation.
 
+### `output/`: Figure 2 FINAL (PROMPT 5, Part B)
+
+| File | What it is |
+|---|---|
+| `BUSM1042_A3_Figure2_FINAL.xlsx` | Figure 2 only: the native Excel chart (Figure2 sheet), its data (Q2_Summary Tables A and D, formulas on counts computed from the source) and live checks. Paste into Word as an Enhanced Metafile. |
+| `Figure2_FINAL_chart_300dpi.png`, `Figure2_FINAL_render.png` | LibreOffice renders: the chart alone at 300 dpi, and the whole Figure2 sheet at 220 dpi. |
+| `verification_report_figure2.md` | 150 checks: three-way agreement, expected values, exact labels, chart XML, regional-setting test. |
+| `build_figure2.py`, `verify_figure2.py`, `figure2_FINAL_reference.py` | Build and verify scripts; the reference chart function they reuse. |
+
 ### `output/`: group dataset for Q1–Q5 (PROMPT A)
 
 | File | What it is |
