@@ -2,7 +2,26 @@
 
 BUSM1042 Assignment 3 (group report), Q2: how booking lead time affects the likelihood of cancellation.
 
-## `output/`
+## `output/`: group dataset for Q1–Q5 (PROMPT A)
+
+| File | What it is |
+|---|---|
+| `BUSM1042_A3_Group_Clean_Data.xlsx` | Shared, audited dataset: Raw_Data (exact source copy), Column_Profile, Clean_Data (`tblClean`, 39 derived and flag columns), Data_Quality_Log (DQ01–DQ20), Sensitivity, OneVar_Summary (21 one-variable tables) and Checks. Formulas calculate on open. |
+| `BUSM1042_A3_Data_Quality_Notes.docx` / `.pdf` | The data-quality notes for the report and the lecturer; every number comes from the workbook's calculated values. |
+| `verification_report_group.md` | Three-way verification (pandas, plain row loop, Excel formulas), Raw_Data integrity, Word number check, deviations. |
+| `build_group_workbook.py`, `build_quality_notes.py`, `verify_group.py` | Scripts that rebuild and re-verify both files. |
+
+Rebuild (source dataset kept outside the repo):
+
+```bash
+python3 -I output/build_group_workbook.py <dataset.xlsx> build_g/BUSM1042_A3_Group_Clean_Data.xlsx
+python3 -I output/verify_group.py recalc build_g/BUSM1042_A3_Group_Clean_Data.xlsx recalc_g
+python3 -I output/build_quality_notes.py recalc_g/BUSM1042_A3_Group_Clean_Data.xlsx build_g/BUSM1042_A3_Data_Quality_Notes.docx "<viewed date>"
+python3 -I output/verify_group.py render build_g/BUSM1042_A3_Data_Quality_Notes.docx build_g/notes_render
+python3 -I output/verify_group.py check <dataset.xlsx> build_g/BUSM1042_A3_Group_Clean_Data.xlsx recalc_g/BUSM1042_A3_Group_Clean_Data.xlsx build_g/BUSM1042_A3_Data_Quality_Notes.docx output/verification_report_group.md
+```
+
+## `output/`: Q2 lead-time workbook and Figure 2
 
 | File | What it is |
 |---|---|

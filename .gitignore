@@ -1,4 +1,6 @@
 input/
 build/
 recalc/
+build_g/
+recalc_g/
 __pycache__/
